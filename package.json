@@ -1,7 +1,7 @@
 {
-  "name": "initilization-service",
+  "name": "radar-api",
   "version": "1.0.0",
-  "description": "This service will initilize the coding env for the user by copying over the base directory for that particular language",
+  "description": "",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",

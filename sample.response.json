@@ -1,0 +1,19 @@
+{
+    "method": "POST",
+    "path": "/api/v1/signin",
+    "headers": {
+        "content-type": "application/json",
+        "user-agent": "PostmanRuntime/7.41.0",
+        "accept": "*/*",
+        "postman-token": "d5de5808-1973-4c68-95c2-4c88016dcef5",
+        "host": "localhost:4000",
+        "accept-encoding": "gzip, deflate, br",
+        "connection": "keep-alive",
+        "content-length": "77",
+        "cookie": "token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY2Yjg1ZWM2MzQzMmQ2N2JkZjVjNmJiZCIsImlhdCI6MTcyMzM1ODkxOCwiZXhwIjoxNzIzNjE4MTE4fQ.UOIOGSTjwSKfRG9aEOs4puFuOqSZOFF5jWqu7owJ7dc"
+    },
+    "params": {},
+    "statusCode": 200,
+    "responseTime": "266.686 ms",
+    "apiKey" : "xyzabc"
+}
