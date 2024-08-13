@@ -25,8 +25,6 @@ const apiSchema = new Schema({
         type : Boolean,
         required : false,
     },
-    
-
 })
 
 module.exports = mongoose.model("apiModel",apiSchema);
