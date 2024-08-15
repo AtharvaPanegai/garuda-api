@@ -17,7 +17,7 @@ const projectSchema = new Schema({
     ],
     apiKey : {
         type : String,
-        required : true
+        required : false
     }
 })
 
