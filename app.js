@@ -7,6 +7,7 @@ const fileUpload = require("express-fileupload")
 // import all routes here
 const userRouter = require("./routes/user.routes");
 const projectRouter = require("./routes/project.routes");
+const { isLoggedIn } = require("./middlewares/auth.middleware");
 
 
 // middlewares
@@ -30,7 +31,7 @@ app.use(morgan("tiny"));
 
 // use routes here
 app.use("/api/v1",userRouter);
-app.use("/api/v1/project",projectRouter);
+app.use("/api/v1/project",isLoggedIn,projectRouter);
 
 app.get("/",(req,res,next)=>{
     res.send({

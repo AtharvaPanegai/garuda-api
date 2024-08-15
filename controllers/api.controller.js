@@ -2,8 +2,8 @@
 
 const BigPromise = require("../middlewares/BigPromise");
 const logger = require("logat");
-const { _doesThisCustomerExists } = require("../utils/customerUtils");
-const { _doesThisKeyBelongsToCustomerAndProject } = require("../utils/projectUtils");
+const { _doesThisCustomerExists } = require("../utils/user.utils");
+const { _doesThisKeyBelongsToCustomerAndProject } = require("../utils/project.utils");
 
 
 
