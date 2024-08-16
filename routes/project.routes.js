@@ -1,7 +1,7 @@
 const express = require("express");
+const router = express.Router();
 const { createProject, createProjectApiKey } = require("../controllers/project.controller");
 const { isLoggedIn } = require("../middlewares/auth.middleware");
-const router = express.Router();
 
 // router.route("/create").post(createProject);
 router.route("/createapikey").post(createProjectApiKey);

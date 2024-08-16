@@ -40,7 +40,7 @@ exports.createProjectApiKey = BigPromise(async (req, res, next) => {
 
     if(!user){
         logger.error(`Error || No Customer Exists with userId : ${userId}`);
-        return new CustomError("No Customer Found with this customerId",404);
+        return new CustomError("No Customer Found with this userId",404);
     }
 
     let apiKeyCreated = uuidv4();

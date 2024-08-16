@@ -21,10 +21,34 @@ const apiSchema = new Schema({
         type : Schema.Types.ObjectId,
         ref:"projectModel"
     },
+    customer : {
+        type : Schema.Types.ObjectId,
+        ref : "customer"
+    },
     isCurrentlyDown : {
         type : Boolean,
         required : false,
     },
+    apiMostRecentStatusCode : {
+        type : String,
+        required : true
+    },
+    apiMostRecentResponseTime : {
+        type : String,
+        required : true
+    },
+    totalHitsTillNow : {
+        type : Number,
+        required : true
+    },
+    apiStatusCodesArray : {
+        type : Array,
+        required : true
+    },
+    createdAt : {
+        type : Date,
+        default : Date.now
+    }
 })
 
 module.exports = mongoose.model("apiModel",apiSchema);

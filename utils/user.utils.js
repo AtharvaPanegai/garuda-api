@@ -1,7 +1,7 @@
 const User = require("../models/userModel")
 
-const _doesThisCustomerExists = async (customerId) => {
-    let customer = await User.findById(customerId);
+const _doesThisCustomerExists = async (userId) => {
+    let customer = await User.findById(userId);
     if (customer) {
         return true;
     }
