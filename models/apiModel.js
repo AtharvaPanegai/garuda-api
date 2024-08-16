@@ -4,6 +4,7 @@ const apiSchema = new Schema({
     apiEndPoint : {
         type : String,
         required : true,
+        unique : true
     },
     apiMethod : {
         type : String,
