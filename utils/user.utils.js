@@ -25,7 +25,26 @@ const _getCookieToken = (user, res) => {
 };
 
 
+const _getUserUsingId = async (id) => {
+    return User.findById(id); 
+};
+
+const _updateUserInfoUsingGivenData = async (id, data) => {
+    return User.findByIdAndUpdate(id, data, { new: true }); 
+};
+
+const _createUser = async (data) => {
+    return User.create(data); 
+};
+
+const _deleteUser = async (id) => {
+    return User.findByIdAndDelete(id);
+};
 
 
 module.exports._doesThisCustomerExists = _doesThisCustomerExists;
 module.exports._getCookieToken = _getCookieToken;
+module.exports._getUserUsingId = _getUserUsingId;
+module.exports._updateUserInfoUsingGivenData = _updateUserInfoUsingGivenData;
+module.exports._createUser = _createUser;
+module.exports._deleteUser = _deleteUser;

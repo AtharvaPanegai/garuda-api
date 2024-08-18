@@ -45,3 +45,29 @@ exports.signIn = BigPromise(async (req, res, next) => {
 
     _getCookieToken(user, res);
 });
+
+exports.handleMultipleMethods = BigPromise(async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        if (req.method === 'GET') {
+            const userId = req.params.id;
+            const user = await _getUserUsingId(userId);
+            res.status(200).json({ success: true, user });
+        } else if (req.method === 'PUT') {
+            const userId = req.params.id;
+            const updatedUser = await _updateUserInfoUsingGivenData(userId, req.body);
+            res.status(200).json({ success: true, updatedUser });
+        } else if (req.method === 'POST') {
+            const newUser = await _createUser(req.body);
+            res.status(201).json({ success: true, newUser });
+        } else if (req.method === 'DELETE') {
+            const userId = req.params.id;
+            await _deleteUser(userId);
+            res.status(204).json({ success: true, message: 'User deleted successfully' });
+        } else {
+            res.status(405).json({ success: false, message: 'Method Not Allowed' });
+        }
+    } catch (error) {
+        next(error); 
+    }
+});

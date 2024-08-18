@@ -58,26 +58,26 @@ exports.onboardApisAsPerHits = BigPromise(async (req, res, next) => {
         let statusCodeArray = apiObj.apiStatusCodesArray;
         statusCodeArray.push(apiLogInfo.statusCode)
         let mostCapturedStatusCode = _getMostCapturedStatusCode(statusCodeArray);
-        let averageResponseTime = _getAverageResponseTime(apiLogInfo.responseTime,apiObj);
+        let averageResponseTime = _getAverageResponseTime(apiLogInfo.responseTime, apiObj);
 
         if (_isApiDown(apiLogInfo.statusCode)) {
             logger.info(`INFO || API : ${apiObj._id} is down sending out emails to realted person in project`);
         }
 
         let updateObj = {
-            "apiMostRecentStatusCode" : apiLogInfo.statusCode,
-            "apiMostRecentResponseTime" : apiLogInfo.responseTime,
-            "apiMostCapturedStatusCode" : mostCapturedStatusCode,
-            "apiAverageResponseTime" : averageResponseTime,
-            "totalHitsTillNow" : apiObj.totalHitsTillNow + 1,
-            "apiStatusCodesArray" : statusCodeArray,
+            "apiMostRecentStatusCode": apiLogInfo.statusCode,
+            "apiMostRecentResponseTime": apiLogInfo.responseTime,
+            "apiMostCapturedStatusCode": mostCapturedStatusCode,
+            "apiAverageResponseTime": averageResponseTime,
+            "totalHitsTillNow": apiObj.totalHitsTillNow + 1,
+            "apiStatusCodesArray": statusCodeArray,
             "isCurrentlyDown": _isApiDown(apiLogInfo.statusCode),
         }
 
-        await _updateApiModelUsingId(apiObj._id,updateObj);
-        
+        await _updateApiModelUsingId(apiObj._id, updateObj);
+
         res.status(200).json({
-            message : "API Info Updated successfully"
+            message: "API Info Updated successfully"
         })
         return;
 
