@@ -1,7 +1,7 @@
 const BigPromise = require("../middlewares/BigPromise");
 const User = require("../models/userModel");
 const CustomError = require("../utils/customError");
-const { _getCookieToken } = require("../utils/user.utils");
+const { _getCookieToken, _getUserUsingId, _updateUserInfoUsingGivenData, _createUser, _deleteUser } = require("../utils/user.utils");
 
 exports.signUp = BigPromise(async (req, res, next) => {
     const { username, emailId, phoneNumber, companyName, password, customerPlan } = req.body;
