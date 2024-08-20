@@ -3,52 +3,52 @@
 const BigPromise = require("../middlewares/BigPromise");
 const logger = require("logat");
 const { _doesThisCustomerExists } = require("../utils/user.utils");
-const { _doesThisKeyBelongsToCustomerAndProject, _getProjectUsingCustomerIdAndApiKey } = require("../utils/project.utils");
+const { _getProjectUsingCustomerIdAndApiKey, _doesThisProjectExists, _doesProjectIdAndApiKeyMatches, _getProjectById } = require("../utils/project.utils");
 const { _doesThisApiAlreadyExists, _isApiDown, _findApiUsingProjectKeyAndPath, _updateApiModelUsingId, _getAverageResponseTime, _getMostCapturedStatusCode } = require("../utils/radar.utils");
 const apiModel = require("../models/apiModel");
 
 exports.onboardApisAsPerHits = BigPromise(async (req, res, next) => {
 
-    let { userId } = req.body;
+    let { projectId } = req.body;
     let apiKey = req.headers.apikey;
     let apiLogInfo = req.body;
 
     // Early Returns and validations
-    if (!userId || !apiKey || !apiLogInfo) {
+    if (!projectId || !apiKey || !apiLogInfo) {
         res.status(400).json({
             statusCode: 400,
-            message: "Bad Request! , Check Missing fields between userId, apikey and apiLogInfo"
+            message: "Bad Request! , Check Missing fields between projectId, apikey and apiLogInfo"
         })
 
         return;
     }
-    if (userId) {
-        let isCustomerThere = await _doesThisCustomerExists(userId)
-        if (!isCustomerThere) {
-            logger.error(`Error || Customer with userId : ${userId} does not exist`);
+    if (projectId) {
+        let doesProjectExists = await _doesThisProjectExists(projectId)
+        if (!doesProjectExists) {
+            logger.error(`Error || Project with projectId : ${projectId} does not exist`);
             res.status(404).json({
                 statusCode: 404,
-                message: "Customer not found!"
+                message: "Project not found!"
             })
             return;
         }
-        let checkcustomerandproject = await _doesThisKeyBelongsToCustomerAndProject(userId, apiKey);
-        if (!checkcustomerandproject) {
-            logger.error(`Error || Provided ApiKey does not match with the apiKey of customer : ${userId}`);
+        let checkapiKeyAndProjectId = await _doesProjectIdAndApiKeyMatches(projectId, apiKey);
+        if (!checkapiKeyAndProjectId) {
+            logger.error(`Error || Provided ApiKey does not match with the apiKey of project : ${projectId}`);
             res.status(403).json({
                 statusCode: 403,
                 message: "Invalid Api Key!"
             })
             return;
         }
-        logger.info(`INFO || Provided Api Key matches with userId : ${userId} ... proceeding further`);
+        logger.info(`INFO || Provided Api Key matches with Project : ${projectId} ... proceeding further`);
     }
 
     // Actual Processing of Apis    
-    logger.info(`INFO || Processing the api Data for user : ${userId}`);
+    logger.info(`INFO || Processing the api Data for Project : ${projectId}`);
 
-    let project = await _getProjectUsingCustomerIdAndApiKey(userId, apiKey);
-    let doesApiExists = await _doesThisApiAlreadyExists(apiLogInfo.method, apiLogInfo.path, userId, project._id);
+    let project = await _getProjectById(projectId);
+    let doesApiExists = await _doesThisApiAlreadyExists(apiLogInfo.method, apiLogInfo.path, project._id);
     if (doesApiExists) {
         // if api already exists
         // update the apiMostRecentStatusCode,apiMostRecentResponseTime,apiAverageResponseTime , apiMostCapturedStatusCode
@@ -82,7 +82,7 @@ exports.onboardApisAsPerHits = BigPromise(async (req, res, next) => {
         return;
 
     } else {
-        logger.info(`INFO || This API for user : ${userId} came for the first time saving into db`);
+        logger.info(`INFO || This API for project : ${projectId} came for the first time saving into db`);
 
         let apiObj = await apiModel.create({
             apiEndPoint: project._id + apiLogInfo.path,
@@ -90,7 +90,7 @@ exports.onboardApisAsPerHits = BigPromise(async (req, res, next) => {
             apiMostCapturedStatusCode: apiLogInfo.statusCode,
             apiAverageResponseTime: apiLogInfo.responseTime,
             project: project._id,
-            customer: userId,
+            customer: project.customer,
             isCurrentlyDown: _isApiDown(apiLogInfo.statusCode),
             apiMostRecentStatusCode: apiLogInfo.statusCode,
             apiMostRecentResponseTime: apiLogInfo.responseTime,
@@ -102,7 +102,7 @@ exports.onboardApisAsPerHits = BigPromise(async (req, res, next) => {
             logger.info(`INFO || API : ${apiObj._id} is down sending out emails to realted person in project`);
         }
 
-        logger.info(`INFO || New Api Saved for user : ${userId} with id : ${apiObj._id}`);
+        logger.info(`INFO || New Api Saved for Project : ${projectId} with id : ${apiObj._id}`);
 
         res.status(200).json({
             message: "API saved successfully for the first time",

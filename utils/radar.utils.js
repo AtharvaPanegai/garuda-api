@@ -3,10 +3,10 @@ const ApiModel = require("../models/apiModel");
 const { _isObjectEmpty } = require("./global.utils");
 const apiModel = require("../models/apiModel");
 
-exports._doesThisApiAlreadyExists = async (apiMethod,path,userId,projectId) =>{
+exports._doesThisApiAlreadyExists = async (apiMethod,path,projectId) =>{
     let apiPath = projectId+path;
 
-    let apiObj = await ApiModel.find({apiEndPoint : apiPath,apiMethod : apiMethod,customer : userId});
+    let apiObj = await ApiModel.find({apiEndPoint : apiPath,apiMethod : apiMethod,project : projectId});
 
     if(!_isObjectEmpty(apiObj)){
         return true;
