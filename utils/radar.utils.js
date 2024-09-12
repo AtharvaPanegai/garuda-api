@@ -5,13 +5,12 @@ const apiModel = require("../models/apiModel");
 
 exports._doesThisApiAlreadyExists = async (apiMethod,path,projectId) =>{
     let apiPath = projectId+path;
-
-    let apiObj = await ApiModel.find({apiEndPoint : apiPath,apiMethod : apiMethod,project : projectId});
-
+    let apiObj = await ApiModel.findOne({apiEndPoint : apiPath,apiMethod : apiMethod,project : projectId});
+    // this can be moved to redis for better functioning
     if(!_isObjectEmpty(apiObj)){
-        return true;
+        return apiObj;
     }else{
-        return false;
+        return null;
     }
 }
 
@@ -59,3 +58,14 @@ exports._getMostCapturedStatusCode = (statusCodesArray) => {
 
     return parseInt(mostCapturedStatusCode);
 };
+
+exports._getAPIUsingId = async (apiId)=>{
+    let apiDoc;
+    try{
+        apiDoc = await apiModel.findById(apiId);
+    }catch(err){
+        logger.error(`Error || Error in finding the api doc`);
+        logger.error(err);
+        throw err;
+    }
+}
