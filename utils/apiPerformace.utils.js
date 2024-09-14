@@ -12,29 +12,8 @@ exports._isApiPerformaceModelExists = async (apiId) => {
 }
 
 
-exports._updatePerformance = async (performanceId, updateObj) => {
-    try {
-        await apiPerformanceModel.updateOne({ _id: performanceId }, updateObj);
-        return true;
-    } catch (err) {
-        logger.error(`Error || Error in updating the perfromace metrics for id : ${performanceId}`);
-        logger.error(err);
-        throw err;
-    }
-}
 
-exports._createApiPerformaceModel = async (creationObject) => {
-    try {
-        let apiPerformance = await apiPerformanceModel.create(creationObject);
-        return apiPerformance;
-    } catch (err) {
-        logger.error(`Error || Error in creating performance model for ${creationObject.apiId}`);
-        logger.error(err);
-        throw err;
-    }
-}
-
-exports._getCreationObject = (apiLogInfo, apiId) => {
+const _getCreationObject = (apiLogInfo, apiId) => {
     let currentMinute = new Date();
     currentMinute.setSeconds(0, 0);
 
@@ -70,7 +49,7 @@ exports._getCreationObject = (apiLogInfo, apiId) => {
     return creationObject;
 }
 
-exports._getUpdationObject = (apiLogInfo, radar) => {
+const _getUpdationObject = (apiLogInfo, radar) => {
     let currentMinute = new Date();
     currentMinute.setSeconds(0, 0);
 
@@ -113,4 +92,29 @@ exports._getUpdationObject = (apiLogInfo, radar) => {
     };
 
     return updationObject;
+}
+
+
+exports._updatePerformance = async (radar, apiLogInfo) => {
+    try {
+        let updateObj = _getUpdationObject(apiLogInfo,radar);
+        await apiPerformanceModel.updateOne({ _id: radar._id }, updateObj);
+        return true;
+    } catch (err) {
+        logger.error(`Error || Error in updating the perfromace metrics for id : ${performanceId}`);
+        logger.error(err);
+        throw err;
+    }
+}
+
+exports._createApiPerformaceModel = async (apiLogInfo,apiId) => {
+    try {
+        let creationObject = _getCreationObject(apiLogInfo,apiId);
+        let apiPerformance = await apiPerformanceModel.create(creationObject);
+        return apiPerformance;
+    } catch (err) {
+        logger.error(`Error || Error in creating performance model for ${creationObject.apiId}`);
+        logger.error(err);
+        throw err;
+    }
 }

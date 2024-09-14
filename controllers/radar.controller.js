@@ -2,15 +2,14 @@
 
 const BigPromise = require("../middlewares/BigPromise");
 const logger = require("logat");
-const { _doesThisCustomerExists } = require("../utils/user.utils");
-const { _getProjectUsingCustomerIdAndApiKey, _doesThisProjectExists, _doesProjectIdAndApiKeyMatches, _getProjectById } = require("../utils/project.utils");
-const { _doesThisApiAlreadyExists, _isApiDown, _findApiUsingProjectKeyAndPath, _updateApiModelUsingId, _getAverageResponseTime, _getMostCapturedStatusCode, _getAPIUsingId  } = require("../utils/radar.utils");
-const apiModel = require("../models/apiModel");
+const { _doesProjectIdAndApiKeyMatches, _getProjectById } = require("../utils/project.utils");
+const { _doesThisApiAlreadyExists, _isApiDown, _getAPIUsingId, _createApiModelAndSaveInDb, _updateApiModelAndSaveInDb } = require("../utils/radar.utils");
 const CustomError = require("../utils/customError");
-const { _isApiPerformaceModelExists, _createApiPerformaceModel, _updatePerformance, _getCreationObject, _getUpdationObject } = require("../utils/apiPerformace.utils");
+const { _isApiPerformaceModelExists, _createApiPerformaceModel, _updatePerformance, _getUpdationObject } = require("../utils/apiPerformace.utils");
 // const { checkApiInCache, saveApiInCache } = require("../services/redis.service");
 
 
+// This is main API where all the hits from package will get processed further old and new both
 exports.onboardApisAsPerHits = BigPromise(async (req, res, next) => {
     let { projectId } = req.body;
     let apiKey = req.headers.apikey;
@@ -46,39 +45,38 @@ exports.onboardApisAsPerHits = BigPromise(async (req, res, next) => {
         })
     }
 
+
     logger.info(`INFO || Project Exists and API key also matched with project Id : ${projectId} ... proceeding further`);
 
     let apiObj = await _doesThisApiAlreadyExists(apiLogInfo.method, apiLogInfo.path, project._id);
     if (!apiObj) {
         logger.info(`INFO || API Hit came for the first Time... for projectId : ${projectId}`);
-        apiObj = await apiModel.create({
-            apiEndPoint: project._id + apiLogInfo.path,
-            apiMethod: apiLogInfo.method,
-            apiMostCapturedStatusCode: apiLogInfo.statusCode,
-            apiAverageResponseTime: apiLogInfo.responseTime,
-            project: project._id,
-            customer: project.customer,
-            isCurrentlyDown: _isApiDown(apiLogInfo.statusCode),
-            apiMostRecentStatusCode: apiLogInfo.statusCode,
-            apiMostRecentResponseTime: apiLogInfo.responseTime,
-            totalHitsTillNow: 1,
-            apiStatusCodesArray: [apiLogInfo.statusCode],
-        });
-
+        apiObj = await _createApiModelAndSaveInDb(project, apiLogInfo);
         // If the API is down, notify the team
         if (_isApiDown(apiLogInfo.statusCode)) {
             logger.info(`INFO || API : ${apiObj._id} is down, sending out emails to relevant persons in the project`);
         }
+        let checkapiKeyAndProjectId = await _doesProjectIdAndApiKeyMatches(projectId, apiKey);
+        if (!checkapiKeyAndProjectId) {
+            logger.error(`Error || Provided ApiKey does not match with the apiKey of project : ${projectId}`);
+            res.status(403).json({
+                statusCode: 403,
+                message: "Invalid Api Key!"
+            })
+            return;
+        }
+        logger.info(`INFO || Provided Api Key matches with Project : ${projectId} ... proceeding further`);
+
 
         logger.info(`INFO || New API saved for Project : ${projectId} with id : ${apiObj._id}`);
 
         // Create a new entry in apiPerformanceModel for performance metrics
-        let creationObject = await _getCreationObject(apiLogInfo,apiObj._id);
-        await _createApiPerformaceModel(creationObject);
+
+        await _createApiPerformaceModel(apiLogInfo, apiObj._id);
 
         return res.status(200).json({
             message: "API saved successfully for the first time",
-            apiObj,
+            apiObj
         });
 
     } else {
@@ -86,35 +84,17 @@ exports.onboardApisAsPerHits = BigPromise(async (req, res, next) => {
 
         if (!isRadarPresentForApi) {
             logger.info(`INFO || Initiating radar for this api with id : ${apiObj._id}`);
-            let creationObject = _getCreationObject(apiLogInfo,apiObj._id);
-            let performaceRadar = await _createApiPerformaceModel(creationObject);
+            await _createApiPerformaceModel(apiLogInfo, apiObj._id);
         } else {
-            let updateObject = _getUpdationObject(apiLogInfo,isRadarPresentForApi);
-            await _updatePerformance(isRadarPresentForApi._id, updateObject);
+            await _updatePerformance(isRadarPresentForApi,apiLogInfo);
         }
 
-        //  Update the existing API record
-        let statusCodeArray = apiObj.apiStatusCodesArray;
-        statusCodeArray.push(apiLogInfo.statusCode);
-        let mostCapturedStatusCode = _getMostCapturedStatusCode(statusCodeArray);
-        let averageResponseTime = _getAverageResponseTime(apiLogInfo.responseTime, apiObj);
 
         if (_isApiDown(apiLogInfo.statusCode)) {
-            logger.info(`INFO || API : ${apiObj._id} is down, sending emails to relevant persons in the project`);
+            logger.info(`INFO || API : ${apiObj._id} is down sending out emails to realted person in project`);
         }
 
-        // Update the apiModel
-        let updateObj = {
-            "apiMostRecentStatusCode": apiLogInfo.statusCode,
-            "apiMostRecentResponseTime": apiLogInfo.responseTime,
-            "apiMostCapturedStatusCode": mostCapturedStatusCode,
-            "apiAverageResponseTime": averageResponseTime,
-            "totalHitsTillNow": apiObj.totalHitsTillNow + 1,
-            "apiStatusCodesArray": statusCodeArray,
-            "isCurrentlyDown": _isApiDown(apiLogInfo.statusCode),
-        };
-
-        await _updateApiModelUsingId(apiObj._id, updateObj);
+        await _updateApiModelAndSaveInDb(apiObj, apiLogInfo);
 
         return res.status(200).json({
             statusCode: 200,
