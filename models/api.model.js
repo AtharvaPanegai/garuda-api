@@ -20,7 +20,7 @@ const apiSchema = new Schema({
     },
     project : {
         type : Schema.Types.ObjectId,
-        ref:"projectModel"
+        ref:"project"
     },
     customer : {
         type : Schema.Types.ObjectId,

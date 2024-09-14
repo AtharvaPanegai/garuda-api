@@ -43,7 +43,7 @@ const customerSchema = new Schema({
     },
     projects : {
         type : Schema.Types.ObjectId,
-        ref : "projectModel"
+        ref : "project"
     },
     forgotPasswordToken: String,
     forgotPasswordExpiry: Date,

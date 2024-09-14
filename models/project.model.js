@@ -22,4 +22,4 @@ const projectSchema = new Schema({
     }
 })
 
-module.exports = mongoose.model("projectModel",projectSchema);
+module.exports = mongoose.model("project",projectSchema);

@@ -1,8 +1,8 @@
-const apiPerformanceModel = require("../models/apiPerformanceModel");
+const Radar = require("../models/radar.model");
 const logger = require("logat");
 
-exports._isApiPerformaceModelExists = async (apiId) => {
-    let performaceModel = await apiPerformanceModel.findOne({ apiId: apiId });
+exports._isRadarExists = async (apiId) => {
+    let performaceModel = await Radar.findOne({ apiId: apiId });
 
     if (!performaceModel) {
         return null;
@@ -95,10 +95,10 @@ const _getUpdationObject = (apiLogInfo, radar) => {
 }
 
 
-exports._updatePerformance = async (radar, apiLogInfo) => {
+exports._updateRadar = async (radar, apiLogInfo) => {
     try {
         let updateObj = _getUpdationObject(apiLogInfo,radar);
-        await apiPerformanceModel.updateOne({ _id: radar._id }, updateObj);
+        await Radar.updateOne({ _id: radar._id }, updateObj);
         return true;
     } catch (err) {
         logger.error(`Error || Error in updating the perfromace metrics for id : ${performanceId}`);
@@ -107,10 +107,10 @@ exports._updatePerformance = async (radar, apiLogInfo) => {
     }
 }
 
-exports._createApiPerformaceModel = async (apiLogInfo,apiId) => {
+exports._addRadarOnApi = async (apiLogInfo,apiId) => {
     try {
         let creationObject = _getCreationObject(apiLogInfo,apiId);
-        let apiPerformance = await apiPerformanceModel.create(creationObject);
+        let apiPerformance = await Radar.create(creationObject);
         return apiPerformance;
     } catch (err) {
         logger.error(`Error || Error in creating performance model for ${creationObject.apiId}`);
