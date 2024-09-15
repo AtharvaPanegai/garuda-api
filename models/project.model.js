@@ -19,6 +19,11 @@ const projectSchema = new Schema({
     apiKey : {
         type : String,
         required : false
+    },
+    onCallPerson : {
+        onCallPersonEmail : String,
+        onCallPersonPhoneNumber : String,
+        onCallPersonName : String,
     }
 })
 
