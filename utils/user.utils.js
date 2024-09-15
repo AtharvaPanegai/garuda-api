@@ -41,6 +41,13 @@ const _deleteUser = async (id) => {
     return User.findByIdAndDelete(id);
 };
 
+const _saveProjectInUser = async (userId,projectId) =>{
+    await User.findByIdAndUpdate(
+        userId, 
+        { $push: { projects: projectId } },
+        { new: true, useFindAndModify: false }
+      );
+}
 
 module.exports._doesThisCustomerExists = _doesThisCustomerExists;
 module.exports._getCookieToken = _getCookieToken;
@@ -48,3 +55,4 @@ module.exports._getUserUsingId = _getUserUsingId;
 module.exports._updateUserInfoUsingGivenData = _updateUserInfoUsingGivenData;
 module.exports._createUser = _createUser;
 module.exports._deleteUser = _deleteUser;
+module.exports._saveProjectInUser = _saveProjectInUser;
