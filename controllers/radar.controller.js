@@ -5,7 +5,7 @@ const logger = require("logat");
 const { _doesProjectIdAndApiKeyMatches, _getProjectById } = require("../utils/project.utils");
 const { _doesThisApiAlreadyExists, _isApiDown, _getAPIUsingId, _createApiModelAndSaveInDb, _updateApiModelAndSaveInDb } = require("../utils/radar.utils");
 const CustomError = require("../utils/customError");
-const { _isApiPerformaceModelExists, _createApiPerformaceModel, _updatePerformance, _getUpdationObject } = require("../utils/apiPerformace.utils");
+const { _isRadarExists, _addRadarOnApi, _updateRadar } = require("../utils/apiPerformace.utils");
 // const { checkApiInCache, saveApiInCache } = require("../services/redis.service");
 
 
@@ -72,7 +72,7 @@ exports.onboardApisAsPerHits = BigPromise(async (req, res, next) => {
 
         // Create a new entry in apiPerformanceModel for performance metrics
 
-        await _createApiPerformaceModel(apiLogInfo, apiObj._id);
+        await _addRadarOnApi(apiLogInfo, apiObj._id);
 
         return res.status(200).json({
             message: "API saved successfully for the first time",
@@ -80,13 +80,13 @@ exports.onboardApisAsPerHits = BigPromise(async (req, res, next) => {
         });
 
     } else {
-        let isRadarPresentForApi = await _isApiPerformaceModelExists(apiObj._id);
+        let isRadarPresentForApi = await _isRadarExists(apiObj._id);
 
         if (!isRadarPresentForApi) {
             logger.info(`INFO || Initiating radar for this api with id : ${apiObj._id}`);
-            await _createApiPerformaceModel(apiLogInfo, apiObj._id);
+            await _addRadarOnApi(apiLogInfo, apiObj._id);
         } else {
-            await _updatePerformance(isRadarPresentForApi,apiLogInfo);
+            await _updateRadar(isRadarPresentForApi,apiLogInfo);
         }
 
 

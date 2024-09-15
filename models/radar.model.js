@@ -30,4 +30,4 @@ const apiPerformanceSchema = new Schema({
     },
 });
 
-module.exports = mongoose.model("apiPerformanceModel", apiPerformanceSchema);
+module.exports = mongoose.model("Radar", apiPerformanceSchema);
