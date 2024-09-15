@@ -1,6 +1,6 @@
 const logger = require("logat");
 const { _isObjectEmpty } = require("./global.utils");
-const apiModel = require("../models/apiModel");
+const apiModel = require("../models/api.model");
 
 exports._doesThisApiAlreadyExists = async (apiMethod, path, projectId) => {
     let apiPath = projectId + path;
