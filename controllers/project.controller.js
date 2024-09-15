@@ -4,7 +4,7 @@ const logger = require("logat");
 const User = require("../models/user.model");
 const CustomError = require("../utils/customError");
 const Project = require("../models/project.model");
-const { _updateProjectDetailsUsingId } = require("../utils/project.utils");
+const { _updateProjectDetailsUsingId, _isOnCallPersonExistsForThisProject } = require("../utils/project.utils");
 
 exports.createProject = BigPromise(async (req, res, next) => {
     const { userId, projectName } = req.body;
@@ -42,6 +42,16 @@ exports.createProjectApiKey = BigPromise(async (req, res, next) => {
     if (!user) {
         logger.error(`Error || No Customer Exists with userId : ${userId}`);
         return new CustomError("No Customer Found with this userId", 404);
+    }
+
+    let isOnCallPersonExists = await _isOnCallPersonExistsForThisProject(projectId);
+
+    if(!isOnCallPersonExists){
+        logger.error(`Error || On Call Person does not exists for this project : ${projectId}`);
+        return res.status(422).json({
+            statusCode : 422,
+            message : "Please Add On Call Person Before creating apiKey"
+        })
     }
 
     let apiKeyCreated = uuidv4();
