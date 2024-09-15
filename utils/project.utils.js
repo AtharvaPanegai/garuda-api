@@ -1,4 +1,4 @@
-const projectModel = require("../models/projectModel")
+const projectModel = require("../models/project.model")
 
 exports._doesProjectIdAndApiKeyMatches = async (projectId,apiKey) =>{
     let result = await projectModel.findOne({_id : projectId,apiKey : apiKey});
@@ -11,7 +11,7 @@ exports._doesProjectIdAndApiKeyMatches = async (projectId,apiKey) =>{
 
 exports._doesThisProjectExists = async(projectId) =>{
     let project = await projectModel.findById(projectId);
-    return project ? true : false; 
+    return project; 
 }
 
 exports._getProjectById = async(projectId) =>{

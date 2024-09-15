@@ -1,9 +1,9 @@
 const BigPromise = require("../middlewares/BigPromise");
 const { v4: uuidv4 } = require('uuid');
 const logger = require("logat");
-const User = require("../models/userModel");
+const User = require("../models/user.model");
 const CustomError = require("../utils/customError");
-const Project = require("../models/projectModel");
+const Project = require("../models/project.model");
 
 exports.createProject = BigPromise(async (req,res,next)=>{
     const {userId,projectName} = req.body;

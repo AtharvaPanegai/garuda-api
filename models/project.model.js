@@ -1,4 +1,5 @@
 const { Schema, default: mongoose } = require("mongoose");
+// add slack bot msging feature may be 
 
 const projectSchema = new Schema({
     projectName : {
@@ -21,4 +22,4 @@ const projectSchema = new Schema({
     }
 })
 
-module.exports = mongoose.model("projectModel",projectSchema);
+module.exports = mongoose.model("project",projectSchema);
