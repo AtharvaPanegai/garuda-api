@@ -41,10 +41,12 @@ const customerSchema = new Schema({
         required : true,
         default : "Free"
     },
-    projects : {
-        type : Schema.Types.ObjectId,
-        ref : "project"
-    },
+    projects: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "project"
+      }
+    ],   
     forgotPasswordToken: String,
     forgotPasswordExpiry: Date,
     createdAt : {

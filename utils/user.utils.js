@@ -26,20 +26,28 @@ const _getCookieToken = (user, res) => {
 
 
 const _getUserUsingId = async (id) => {
-    return User.findById(id); 
+    return User.findById(id);
 };
 
 const _updateUserInfoUsingGivenData = async (id, data) => {
-    return User.findByIdAndUpdate(id, data, { new: true }); 
+    return User.findByIdAndUpdate(id, data, { new: true });
 };
 
 const _createUser = async (data) => {
-    return User.create(data); 
+    return User.create(data);
 };
 
 const _deleteUser = async (id) => {
     return User.findByIdAndDelete(id);
 };
+
+const _saveProjectInUser = async (userId, projectId) => {
+    await User.findByIdAndUpdate(
+        userId,
+        { $push: { projects: projectId } },
+        { new: true, useFindAndModify: false }
+    );
+}
 
 
 module.exports._doesThisCustomerExists = _doesThisCustomerExists;
@@ -48,3 +56,4 @@ module.exports._getUserUsingId = _getUserUsingId;
 module.exports._updateUserInfoUsingGivenData = _updateUserInfoUsingGivenData;
 module.exports._createUser = _createUser;
 module.exports._deleteUser = _deleteUser;
+module.exports._saveProjectInUser = _saveProjectInUser;
