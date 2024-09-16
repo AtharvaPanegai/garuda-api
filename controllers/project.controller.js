@@ -4,7 +4,6 @@ const logger = require("logat");
 const User = require("../models/user.model");
 const CustomError = require("../utils/customError");
 const Project = require("../models/project.model");
-const { _saveProjectInUser } = require("../utils/user.utils");
 
 exports.createProject = BigPromise(async (req,res,next)=>{
     const {userId,projectName} = req.body;
@@ -19,7 +18,6 @@ exports.createProject = BigPromise(async (req,res,next)=>{
             projectName : projectName,
             customer : userId
         })
-        await _saveProjectInUser(userId,project._id)
     }catch(err){
         logger.error(`Error || Error in creating projet for user : ${userId}`);
         logger.error(err);
