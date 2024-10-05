@@ -2,12 +2,12 @@ const Radar = require("../models/radar.model");
 const logger = require("logat");
 
 exports._isRadarExists = async (apiId) => {
-    let performaceModel = await Radar.findOne({ apiId: apiId });
+    let radarModel = await Radar.findOne({ apiId: apiId });
 
-    if (!performaceModel) {
+    if (!radarModel) {
         return null;
     } else {
-        return performaceModel;
+        return radarModel;
     }
 }
 
@@ -97,7 +97,7 @@ const _getCreationObject = (apiLogInfo, apiId) => {
         apiMostRecentResponseTime: apiLogInfo.responseTime,
         apiMostCapturedStatusCode: apiLogInfo.statusCode,
         apiAverageResponseTime: apiLogInfo.responseTime,
-        totalHitsTillNow : 1
+        totalHitsTillNow: 1
     };
 
     return creationObject;
@@ -140,8 +140,8 @@ const _getUpdationObject = (apiLogInfo, radar) => {
         });
     }
 
-    let avgResponseTime = _getAverageResponseTime(apiLogInfo.responseTime,radar);
-    let avgStatuscode = _getMostCapturedStatusCode(radar,apiLogInfo.statusCode);
+    let avgResponseTime = _getAverageResponseTime(apiLogInfo.responseTime, radar);
+    let avgStatuscode = _getMostCapturedStatusCode(radar, apiLogInfo.statusCode);
 
     let updationObject = {
         apiId: radar.apiId,
@@ -151,7 +151,7 @@ const _getUpdationObject = (apiLogInfo, radar) => {
         apiMostRecentResponseTime: apiLogInfo.responseTime,
         apiMostCapturedStatusCode: avgStatuscode,
         apiAverageResponseTime: avgResponseTime,
-        totalHitsTillNow : radar.totalHitsTillNow + 1
+        totalHitsTillNow: radar.totalHitsTillNow + 1
     };
 
     return updationObject;
@@ -181,3 +181,67 @@ exports._addRadarOnApi = async (apiLogInfo, apiId) => {
         throw err;
     }
 }
+
+exports._generateApiHitsReport = (radarObj, graphMins) => {
+
+    let graphOptions = {
+        5: "Last 5 mins",
+        60: "Last 1 hour",
+        180: "Last 3 hours",
+        720: "Last 12 hours",
+        1440: "Last 24 hours",
+    }
+
+    let graphType = graphOptions[graphMins]
+    const now = new Date();
+
+    // Define timeframes for each graph type in milliseconds
+    const timeframes = {
+        "Last 5 mins": 5 * 60 * 1000,
+        "Last 1 hour": 60 * 60 * 1000,
+        "Last 3 hours": 3 * 60 * 60 * 1000,
+        "Last 12 hours": 12 * 60 * 60 * 1000,
+        "Last 24 hours": 24 * 60 * 60 * 1000,
+    };
+
+    const intervals = {
+        "Last 5 mins": 1 * 60 * 1000,  // 1-minute interval
+        "Last 1 hour": 5 * 60 * 1000,  // 5-minute interval
+        "Last 3 hours": 30 * 60 * 1000, // 30-minute interval
+        "Last 12 hours": 60 * 60 * 1000, // 1-hour interval
+        "Last 24 hours": 60 * 60 * 1000, // 1-hour interval
+    };
+
+    const selectedTimeframe = timeframes[graphType];
+    const selectedInterval = intervals[graphType];
+
+    // Filter hits within the selected timeframe
+    const filteredHits = radarObj.hitsPerTimeFrame.filter((hit) => {
+        const hitTime = new Date(hit.timeframe);
+        return now - hitTime <= selectedTimeframe;
+    });
+
+    // Group the filtered hits by the selected interval
+    const groupedHits = {};
+
+    filteredHits.forEach((hit) => {
+        const hitTime = new Date(hit.timeframe);
+        const roundedTime = new Date(Math.floor(hitTime.getTime() / selectedInterval) * selectedInterval); // Round to nearest interval
+
+        const formattedTime = roundedTime.toISOString().slice(11, 16); // "HH:MM" format
+
+        if (!groupedHits[formattedTime]) {
+            groupedHits[formattedTime] = 0;
+        }
+        groupedHits[formattedTime] += hit.hits; // Sum hits
+    });
+
+    // Convert groupedHits object to array for the report
+    const report = Object.entries(groupedHits).map(([time, hits]) => ({
+        name: time,
+        hits: hits,
+    }));
+
+    return report;
+};
+

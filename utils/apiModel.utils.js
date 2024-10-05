@@ -62,6 +62,7 @@ exports._getAPIUsingId = async (apiId) => {
     let apiDoc;
     try {
         apiDoc = await apiModel.findById(apiId);
+        return apiDoc
     } catch (err) {
         logger.error(`Error || Error in finding the api doc`);
         logger.error(err);
