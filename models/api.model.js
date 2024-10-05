@@ -10,14 +10,6 @@ const apiSchema = new Schema({
         type : String,
         required : true,
     },
-    apiMostCapturedStatusCode : {
-        type : String,
-        required : true,
-    },
-    apiAverageResponseTime : {
-        type : String,
-        reqired : true,
-    },
     project : {
         type : Schema.Types.ObjectId,
         ref:"project"
@@ -29,22 +21,6 @@ const apiSchema = new Schema({
     isCurrentlyDown : {
         type : Boolean,
         required : false,
-    },
-    apiMostRecentStatusCode : {
-        type : String,
-        required : true
-    },
-    apiMostRecentResponseTime : {
-        type : String,
-        required : true
-    },
-    totalHitsTillNow : {
-        type : Number,
-        required : true
-    },
-    apiStatusCodesArray : {
-        type : Array,
-        required : true
     },
     createdAt : {
         type : Date,

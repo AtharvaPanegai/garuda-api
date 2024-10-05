@@ -1,123 +1,183 @@
+const Radar = require("../models/radar.model");
 const logger = require("logat");
-const { _isObjectEmpty } = require("./global.utils");
-const apiModel = require("../models/api.model");
 
-exports._doesThisApiAlreadyExists = async (apiMethod, path, projectId) => {
-    let apiPath = projectId + path;
-    let apiObj = await apiModel.findOne({ apiEndPoint: apiPath, apiMethod: apiMethod, project: projectId });
-    // this can be moved to redis for better functioning
-    if (apiObj) {
-        return apiObj;
-    } else {
+exports._isRadarExists = async (apiId) => {
+    let performaceModel = await Radar.findOne({ apiId: apiId });
+
+    if (!performaceModel) {
         return null;
-    }
-}
-
-
-const _isApiDown = (apiStatusCode) => {
-    if (apiStatusCode >= 200 && apiStatusCode < 400) {
-        return false;
     } else {
-        return true;
+        return performaceModel;
     }
-};
-
-exports._findApiUsingProjectKeyAndPath = async (projectId, path) => {
-    let apiPath = projectId + path;
-    let apiObj = await apiModel.findOne({ apiEndPoint: apiPath });
-    return apiObj;
 }
 
-
-const _updateApiModelUsingId = async (apiId, updateObj) => {
-    let updatedObject = await apiModel.updateOne({ _id: apiId }, updateObj);
-    return updatedObject;
-}
-
-const _getAverageResponseTime = (newResponseTime, apiObj) => {
-    let totalResponseTime = apiObj.totalHitsTillNow * apiObj.apiAverageResponseTime.replace(" ms", "")
+const _getAverageResponseTime = (newResponseTime, radarObj) => {
+    let totalResponseTime = radarObj.totalHitsTillNow * radarObj.apiAverageResponseTime.replace(" ms", "")
     const numericResponseTime = parseFloat(newResponseTime.replace(" ms", ""));
 
     totalResponseTime += numericResponseTime;
-    let totalApiHits = apiObj.totalHitsTillNow + 1;
+    let totalApiHits = radarObj.totalHitsTillNow + 1;
 
     return (totalResponseTime / totalApiHits).toFixed(3) + ' ms';
 };
 
-const _getMostCapturedStatusCode = (statusCodesArray) => {
-    const statusCodeCount = {};
+const _getMostCapturedStatusCode = (radarObj, newStatusCode) => {
+    const statusCodes = {};
 
-    statusCodesArray.forEach(code => {
-        statusCodeCount[code] = (statusCodeCount[code] || 0) + 1;
+    // Traverse through all statusCodesPerTimeFrame to calculate the cumulative count of each status code
+    radarObj.statusCodesPerTimeFrame.forEach((timeFrame) => {
+        timeFrame.statusCodes.forEach((statusCodeObj) => {
+            const statusCode = statusCodeObj.statusCode;
+            const count = statusCodeObj.count;
+
+            // Accumulate count for each status code
+            if (statusCodes[statusCode]) {
+                statusCodes[statusCode] += count;
+            } else {
+                statusCodes[statusCode] = count;
+            }
+        });
     });
 
-    const mostCapturedStatusCode = Object.keys(statusCodeCount).reduce((a, b) =>
-        statusCodeCount[a] > statusCodeCount[b] ? a : b
-    );
+    // Include the new API hit's status code in the count
+    if (statusCodes[newStatusCode]) {
+        statusCodes[newStatusCode] += 1; // Increment the count for the new status code
+    } else {
+        statusCodes[newStatusCode] = 1; // Add the new status code with an initial count of 1
+    }
 
-    return parseInt(mostCapturedStatusCode);
+    // Find the status code with the highest count
+    let mostCapturedStatusCode = null;
+    let maxCount = 0;
+
+    for (const [code, count] of Object.entries(statusCodes)) {
+        if (count > maxCount) {
+            mostCapturedStatusCode = code;
+            maxCount = count;
+        }
+    }
+
+    return mostCapturedStatusCode;
 };
 
-exports._getAPIUsingId = async (apiId) => {
-    let apiDoc;
-    try {
-        apiDoc = await apiModel.findById(apiId);
-    } catch (err) {
-        logger.error(`Error || Error in finding the api doc`);
-        logger.error(err);
-        throw err;
-    }
+
+
+const _getCreationObject = (apiLogInfo, apiId) => {
+    let currentMinute = new Date();
+    currentMinute.setSeconds(0, 0);
+
+    let timeframe = currentMinute.toISOString();
+
+    // Create hits array
+    let hitsArray = [
+        {
+            timeframe: timeframe,
+            hits: 1 // First hit for this timeframe
+        }
+    ];
+
+    // Create status codes array
+    let statusCodesArray = [
+        {
+            timeframe: timeframe,
+            statusCodes: [
+                {
+                    statusCode: apiLogInfo.statusCode,
+                    count: 1 // First count for this status code in the timeframe
+                }
+            ]
+        }
+    ];
+
+    let creationObject = {
+        apiId: apiId,
+        hitsPerTimeFrame: hitsArray,
+        statusCodesPerTimeFrame: statusCodesArray,
+        apiMostRecentStatusCode: apiLogInfo.statusCode,
+        apiMostRecentResponseTime: apiLogInfo.responseTime,
+        apiMostCapturedStatusCode: apiLogInfo.statusCode,
+        apiAverageResponseTime: apiLogInfo.responseTime,
+        totalHitsTillNow : 1
+    };
+
+    return creationObject;
 }
 
 
-exports._createApiModelAndSaveInDb = async (project, apiLogInfo) => {
-    try {
-        let apiObj = await apiModel.create({
-            apiEndPoint: project._id + apiLogInfo.path,
-            apiMethod: apiLogInfo.method,
-            apiMostCapturedStatusCode: apiLogInfo.statusCode,
-            apiAverageResponseTime: apiLogInfo.responseTime,
-            project: project._id,
-            customer: project.customer,
-            isCurrentlyDown: _isApiDown(apiLogInfo.statusCode),
-            apiMostRecentStatusCode: apiLogInfo.statusCode,
-            apiMostRecentResponseTime: apiLogInfo.responseTime,
-            totalHitsTillNow: 1,
-            apiStatusCodesArray: [apiLogInfo.statusCode],
+const _getUpdationObject = (apiLogInfo, radar) => {
+    let currentMinute = new Date();
+    currentMinute.setSeconds(0, 0);
+
+    let timeframe = currentMinute.toISOString();
+
+    // Initialize or retrieve hits array
+    let hitsArray = radar && radar.hitsPerTimeFrame ? radar.hitsPerTimeFrame : [];
+    let statusCodesArray = radar && radar.statusCodesPerTimeFrame ? radar.statusCodesPerTimeFrame : [];
+
+    // Update hits array for the current timeframe
+    let hitEntry = hitsArray.find(entry => entry.timeframe === timeframe);
+    if (hitEntry) {
+        hitEntry.hits += 1;
+    } else {
+        hitsArray.push({ timeframe: timeframe, hits: 1 });
+    }
+
+    // Update status codes array for the current timeframe
+    let statusEntry = statusCodesArray.find(entry => entry.timeframe === timeframe);
+    if (statusEntry) {
+        let statusCodeEntry = statusEntry.statusCodes.find(status => status.statusCode === apiLogInfo.statusCode);
+        if (statusCodeEntry) {
+            statusCodeEntry.count += 1;
+        } else {
+            statusEntry.statusCodes.push({ statusCode: apiLogInfo.statusCode, count: 1 });
+        }
+    } else {
+        statusCodesArray.push({
+            timeframe: timeframe,
+            statusCodes: [
+                { statusCode: apiLogInfo.statusCode, count: 1 }
+            ]
         });
-
-        return apiObj;
-    } catch (err) {
-        logger.error(`Error || Error in creating apimodel for api path : ${apiLogInfo.path} in project : ${project._id}`);
-        logger.error(err);
-        throw err;
     }
+
+    let avgResponseTime = _getAverageResponseTime(apiLogInfo.responseTime,radar);
+    let avgStatuscode = _getMostCapturedStatusCode(radar,apiLogInfo.statusCode);
+
+    let updationObject = {
+        apiId: radar.apiId,
+        hitsPerTimeFrame: hitsArray,
+        statusCodesPerTimeFrame: statusCodesArray,
+        apiMostRecentStatusCode: apiLogInfo.statusCode,
+        apiMostRecentResponseTime: apiLogInfo.responseTime,
+        apiMostCapturedStatusCode: avgStatuscode,
+        apiAverageResponseTime: avgResponseTime,
+        totalHitsTillNow : radar.totalHitsTillNow + 1
+    };
+
+    return updationObject;
 }
 
 
-exports._updateApiModelAndSaveInDb = async (apiObj, apiLogInfo) => {
+exports._updateRadar = async (radar, apiLogInfo) => {
     try {
-        let statusCodeArray = apiObj.apiStatusCodesArray || [];
-        statusCodeArray.push(apiLogInfo.statusCode);
-        let mostCapturedStatusCode = _getMostCapturedStatusCode(statusCodeArray);
-        let averageResponseTime = _getAverageResponseTime(apiLogInfo.responseTime, apiObj);
-        // Update the apiModel
-        let updateObj = {
-            "apiMostRecentStatusCode": apiLogInfo.statusCode,
-            "apiMostRecentResponseTime": apiLogInfo.responseTime,
-            "apiMostCapturedStatusCode": mostCapturedStatusCode,
-            "apiAverageResponseTime": averageResponseTime,
-            "totalHitsTillNow": apiObj.totalHitsTillNow + 1,
-            "apiStatusCodesArray": statusCodeArray,
-            "isCurrentlyDown": _isApiDown(apiLogInfo.statusCode),
-        };
-        await _updateApiModelUsingId(apiObj._id, updateObj);
+        let updateObj = _getUpdationObject(apiLogInfo, radar);
+        await Radar.updateOne({ _id: radar._id }, updateObj);
+        return true;
     } catch (err) {
-        logger.error(`Error || Error in updating the api model for apiId : ${apiObj._id}`);
+        logger.error(`Error || Error in updating the perfromace metrics for id : ${radar._id}`);
         logger.error(err);
         throw err;
     }
 }
 
-
-module.exports._isApiDown = _isApiDown;
+exports._addRadarOnApi = async (apiLogInfo, apiId) => {
+    try {
+        let creationObject = _getCreationObject(apiLogInfo, apiId);
+        let apiPerformance = await Radar.create(creationObject);
+        return apiPerformance;
+    } catch (err) {
+        logger.error(`Error || Error in creating performance model for ${apiId}`);
+        logger.error(err);
+        throw err;
+    }
+}

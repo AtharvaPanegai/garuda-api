@@ -24,6 +24,26 @@ const apiPerformanceSchema = new Schema({
             ],
         },
     ],
+    apiMostCapturedStatusCode : {
+        type : String,
+        required : true,
+    },
+    apiAverageResponseTime : {
+        type : String,
+        reqired : true,
+    },
+    apiMostRecentStatusCode : {
+        type : String,
+        required : true
+    },
+    apiMostRecentResponseTime : {
+        type : String,
+        required : true
+    },
+    totalHitsTillNow : {
+        type : Number,
+        required : true
+    },
     createdAt: {
         type: Date,
         default: Date.now,

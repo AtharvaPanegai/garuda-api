@@ -3,9 +3,9 @@
 const BigPromise = require("../middlewares/BigPromise");
 const logger = require("logat");
 const { _doesProjectIdAndApiKeyMatches, _getProjectById } = require("../utils/project.utils");
-const { _doesThisApiAlreadyExists, _isApiDown, _getAPIUsingId, _createApiModelAndSaveInDb, _updateApiModelAndSaveInDb } = require("../utils/radar.utils");
+const { _doesThisApiAlreadyExists, _isApiDown, _getAPIUsingId, _createApiModelAndSaveInDb, _updateApiModelAndSaveInDb } = require("../utils/apiModel.utils");
 const CustomError = require("../utils/customError");
-const { _isRadarExists, _addRadarOnApi, _updateRadar } = require("../utils/apiPerformace.utils");
+const { _isRadarExists, _addRadarOnApi, _updateRadar } = require("../utils/radar.utils");
 // const { checkApiInCache, saveApiInCache } = require("../services/redis.service");
 
 
