@@ -5,7 +5,7 @@ const logger = require("logat");
 const { _doesProjectIdAndApiKeyMatches, _getProjectById } = require("../utils/project.utils");
 const { _doesThisApiAlreadyExists, _isApiDown, _getAPIUsingId, _createApiModelAndSaveInDb, _updateApiModelAndSaveInDb } = require("../utils/apiModel.utils");
 const CustomError = require("../utils/customError");
-const { _isRadarExists, _addRadarOnApi, _updateRadar } = require("../utils/radar.utils");
+const { _isRadarExists, _addRadarOnApi, _updateRadar, _generateApiHitsReport } = require("../utils/radar.utils");
 // const { checkApiInCache, saveApiInCache } = require("../services/redis.service");
 
 
@@ -107,7 +107,7 @@ exports.onboardApisAsPerHits = BigPromise(async (req, res, next) => {
 
 
 exports.getReportOfSingleApi = BigPromise(async (req, res, next) => {
-    const { apiId, projectId } = req.body;
+    const { apiId, projectId,duration } = req.body;
 
     if (!apiId || !projectId) {
         logger.error(`Error || Either one of apiId or project id is missing`);
@@ -116,11 +116,23 @@ exports.getReportOfSingleApi = BigPromise(async (req, res, next) => {
 
     let apiDoc = await _getAPIUsingId(apiId);
 
-    if (!apiDoc || !apiDoc.project == projectId) {
+    if (!apiDoc || !apiDoc.project.toString() == projectId) {
         logger.error(`Error || Error in finding the apiDoc with apiId : ${apiId} and project : ${projectId}`);
         throw new CustomError(`API Doc with this project Id does not exist`, 404);
     }
 
+    let radarObj = await _isRadarExists(apiDoc._id);
 
+    if(!radarObj){
+        logger.error(`Error || Radar Object Not found for this API with Id : ${apiDoc._id}`);
+        throw new CustomError("Radar Missing For this API Contact Support Team",500);
+    }
+    
+    let apiReport = _generateApiHitsReport(radarObj,duration); 
+
+    res.status(200).json({
+        message : "Report generated for given time duration",
+        apiReport
+    })
 
 })
