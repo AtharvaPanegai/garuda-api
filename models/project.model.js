@@ -24,6 +24,10 @@ const projectSchema = new Schema({
         onCallPersonEmail : String,
         onCallPersonPhoneNumber : String,
         onCallPersonName : String,
+    },
+    createdAt : {
+        type : Date,
+        default : Date.now
     }
 })
 

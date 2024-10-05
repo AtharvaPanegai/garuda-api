@@ -72,7 +72,7 @@ exports.onboardApisAsPerHits = BigPromise(async (req, res, next) => {
 
         // Create a new entry in apiPerformanceModel for performance metrics
 
-        await _addRadarOnApi(apiLogInfo, apiObj._id);
+        await _addRadarOnApi(apiLogInfo, apiObj);
 
         return res.status(200).json({
             message: "API saved successfully for the first time",
@@ -84,7 +84,7 @@ exports.onboardApisAsPerHits = BigPromise(async (req, res, next) => {
 
         if (!isRadarPresentForApi) {
             logger.info(`INFO || Initiating radar for this api with id : ${apiObj._id}`);
-            await _addRadarOnApi(apiLogInfo, apiObj._id);
+            await _addRadarOnApi(apiLogInfo, apiObj);
         } else {
             await _updateRadar(isRadarPresentForApi,apiLogInfo);
         }
@@ -130,9 +130,11 @@ exports.getReportOfSingleApi = BigPromise(async (req, res, next) => {
     
     let apiReport = _generateApiHitsReport(radarObj,duration); 
 
+    // Adding radar object for rendering other crucial information such as the Avg statusCode avg response time etc
     res.status(200).json({
         message : "Report generated for given time duration",
-        apiReport
+        apiReport,
+        radarObj
     })
 
 })

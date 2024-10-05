@@ -4,9 +4,10 @@ const logger = require("logat");
 const User = require("../models/user.model");
 const CustomError = require("../utils/customError");
 const Project = require("../models/project.model");
-const { _updateProjectDetailsUsingId, _isOnCallPersonExistsForThisProject } = require("../utils/project.utils");
+const { _updateProjectDetailsUsingId, _isOnCallPersonExistsForThisProject, _doesThisProjectExists, _getTotalApisForProject, _getOverallStatusCodesAndGraphDataForProjectReport } = require("../utils/project.utils");
 const { _saveProjectInUser } = require("../utils/user.utils");
-
+const { _getIncidentsAsPerProject } = require("../utils/incident.utils");
+const moment = require("moment");
 
 exports.createProject = BigPromise(async (req, res, next) => {
     const { userId, projectName } = req.body;
@@ -21,7 +22,7 @@ exports.createProject = BigPromise(async (req, res, next) => {
             projectName: projectName,
             customer: userId
         })
-        await _saveProjectInUser(userId,project._id)
+        await _saveProjectInUser(userId, project._id)
     } catch (err) {
         logger.error(`Error || Error in creating projet for user : ${userId}`);
         logger.error(err);
@@ -49,11 +50,11 @@ exports.createProjectApiKey = BigPromise(async (req, res, next) => {
 
     let isOnCallPersonExists = await _isOnCallPersonExistsForThisProject(projectId);
 
-    if(!isOnCallPersonExists){
+    if (!isOnCallPersonExists) {
         logger.error(`Error || On Call Person does not exists for this project : ${projectId}`);
         return res.status(422).json({
-            statusCode : 422,
-            message : "Please Add On Call Person Before creating apiKey"
+            statusCode: 422,
+            message: "Please Add On Call Person Before creating apiKey"
         })
     }
 
@@ -85,7 +86,7 @@ exports.addOnCallPersonForProject = BigPromise(async (req, res, next) => {
     }
 
     try {
-        await _updateProjectDetailsUsingId(projectId, {onCallPerson : onCallPerson});
+        await _updateProjectDetailsUsingId(projectId, { onCallPerson: onCallPerson });
     } catch (err) {
         logger.error(`Error || Error in updating the on call person for projectId : ${projectId}`);
         logger.error(err);
@@ -98,4 +99,51 @@ exports.addOnCallPersonForProject = BigPromise(async (req, res, next) => {
         statusCode: 200,
         message: "On Call Person Updated for your project"
     })
+})
+
+
+exports.getCummulitiveProjectReport = BigPromise(async (req, res, next) => {
+    const { projectId } = req.body;
+
+    if (!projectId) {
+        logger.error(`Error || Missing projectid while fetching the project report`);
+        throw new CustomError("Please provide the projectId for the project report", 400);
+    }
+
+    let project = await _doesThisProjectExists(projectId);
+
+    if (!project) {
+        logger.error(`Error || Error in getting the project with given projectId : ${projectId}`);
+        throw new CustomError("Project With Given ProjectId does not exist!", 404);
+    }
+
+    let projectReport;
+
+    try {
+        let totalApisAdded = await _getTotalApisForProject(projectId);
+        let totalIncidents = await _getIncidentsAsPerProject(projectId);
+        let { mostCapturedStatusCode, apiHitsReport } = await _getOverallStatusCodesAndGraphDataForProjectReport(projectId);
+        let projectAge = moment(project.createdAt).fromNow();
+
+        projectReport = {
+            project,
+            totalApis: totalApisAdded,
+            totalIncidentsReported: totalIncidents,
+            overAllStatusCode: mostCapturedStatusCode,
+            projectAge: projectAge,
+            onCallPerson: project.onCallPerson?.onCallPersonName || "No onCall Person",
+            apiHitsReport: apiHitsReport
+        }
+
+    }catch(err){
+        logger.error(`Error || Error in Generating Report for Project : ${projectId}`);
+        logger.error(err);
+        throw new CustomError("Error in generating Project report, Try again after sometime",500);
+    }
+
+    res.status(200).json({
+        message : "Project Report Generated Sucessfully!",
+        projectReport
+    })
+
 })

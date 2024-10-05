@@ -6,6 +6,11 @@ const apiPerformanceSchema = new Schema({
         ref: "apiModel",
         required: true
     },
+    project : {
+        type : Schema.Types.ObjectId,
+        ref : "project",
+        required : true
+    },
     // Performance Metrics
     hitsPerTimeFrame: [
         {

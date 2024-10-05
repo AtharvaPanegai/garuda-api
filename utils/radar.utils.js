@@ -62,7 +62,7 @@ const _getMostCapturedStatusCode = (radarObj, newStatusCode) => {
 
 
 
-const _getCreationObject = (apiLogInfo, apiId) => {
+const _getCreationObject = (apiLogInfo, apiObj) => {
     let currentMinute = new Date();
     currentMinute.setSeconds(0, 0);
 
@@ -90,7 +90,8 @@ const _getCreationObject = (apiLogInfo, apiId) => {
     ];
 
     let creationObject = {
-        apiId: apiId,
+        apiId: apiObj._id,
+        project : apiObj.project, 
         hitsPerTimeFrame: hitsArray,
         statusCodesPerTimeFrame: statusCodesArray,
         apiMostRecentStatusCode: apiLogInfo.statusCode,
@@ -170,13 +171,13 @@ exports._updateRadar = async (radar, apiLogInfo) => {
     }
 }
 
-exports._addRadarOnApi = async (apiLogInfo, apiId) => {
+exports._addRadarOnApi = async (apiLogInfo, apiObj) => {
     try {
-        let creationObject = _getCreationObject(apiLogInfo, apiId);
+        let creationObject = _getCreationObject(apiLogInfo, apiObj);
         let apiPerformance = await Radar.create(creationObject);
         return apiPerformance;
     } catch (err) {
-        logger.error(`Error || Error in creating performance model for ${apiId}`);
+        logger.error(`Error || Error in creating performance model for ${apiObj._id}`);
         logger.error(err);
         throw err;
     }
