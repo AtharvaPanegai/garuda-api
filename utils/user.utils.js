@@ -1,3 +1,4 @@
+const logger = require("logat");
 const User = require("../models/user.model")
 
 const _doesThisCustomerExists = async (userId) => {
@@ -50,6 +51,31 @@ const _saveProjectInUser = async (userId, projectId) => {
 }
 
 
+const _getUsernamesInProject = async () => {
+    try {
+        let res = await User.find({}, { "username": 1, "_id": 0 });
+        let usernames = [];
+        for (let user of res) {
+            usernames.push(user.username);
+        }
+        return usernames;
+    } catch (err) {
+        logger.error(`Error || Error in getting all usernames`);
+        logger.error(err);
+        throw err;
+    }
+};
+
+
+// can be integrated later on when userbase becomes big (not soon)
+const _sugggestUsernames = (usernameInput) =>{
+    const suggestions = [];
+    for (let i = 1; i <= 3; i++) {
+      suggestions.push(`${username}${Math.floor(Math.random() * 1000)}`);
+    }
+    return suggestions;
+}
+
 module.exports._doesThisCustomerExists = _doesThisCustomerExists;
 module.exports._getCookieToken = _getCookieToken;
 module.exports._getUserUsingId = _getUserUsingId;
@@ -57,3 +83,4 @@ module.exports._updateUserInfoUsingGivenData = _updateUserInfoUsingGivenData;
 module.exports._createUser = _createUser;
 module.exports._deleteUser = _deleteUser;
 module.exports._saveProjectInUser = _saveProjectInUser;
+module.exports._getUsernamesInProject = _getUsernamesInProject;

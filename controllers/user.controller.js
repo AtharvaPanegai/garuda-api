@@ -1,7 +1,8 @@
 const BigPromise = require("../middlewares/BigPromise");
 const User = require("../models/user.model");
 const CustomError = require("../utils/customError");
-const { _getCookieToken, _getUserUsingId, _updateUserInfoUsingGivenData, _createUser, _deleteUser } = require("../utils/user.utils");
+const logger = require("logat");
+const { _getCookieToken, _getUserUsingId, _updateUserInfoUsingGivenData, _createUser, _deleteUser, _getUsernamesInProject } = require("../utils/user.utils");
 
 exports.signUp = BigPromise(async (req, res, next) => {
     const { username, emailId, phoneNumber, companyName, password, customerPlan } = req.body;
@@ -68,6 +69,35 @@ exports.handleMultipleMethods = BigPromise(async (req, res, next) => {
             res.status(405).json({ success: false, message: 'Method Not Allowed' });
         }
     } catch (error) {
-        next(error); 
+        next(error);
     }
 });
+
+
+exports.handleUniqueUsernames = BigPromise(async (req, res, next) => {
+    const { usernameInput } = req.body;
+
+    if (!usernameInput) {
+        logger.error(`Error || Username input is missing please provde the mandatory fields!`);
+        throw new CustomError(`Please Provide the username input as mandatory field!`, 422);
+    }
+
+    let existingUsernames = await _getUsernamesInProject();
+    const isTaken = existingUsernames.includes(usernameInput);
+
+    if(isTaken){
+        logger.info(`INFO || Given usernameInput : ${usernameInput} already existing returning`);
+        return res.status(409).json({
+            success: false,
+            message: 'Username is already taken. Please choose another one.'
+        });
+    }
+    
+    logger.info(`INFO || Given usernameInput : ${usernameInput} is available`);
+    return res.status(200).json({
+        success: true,
+        message: `Given Username : ${usernameInput} is available`
+    });
+
+
+})
