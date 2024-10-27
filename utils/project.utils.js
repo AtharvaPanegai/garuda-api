@@ -121,3 +121,15 @@ exports._getOverallStatusCodesAndGraphDataForProjectReport = async (projectId) =
         throw err;
     }
 }
+
+
+exports._getOnCallPersonFromProjectId = async (projectId) =>{
+    try{
+        let project = await this._getProjectById(projectId);
+        return project.onCallPerson || {};
+    }catch(err){
+        logger.error(`Error || Error getting the onCall Person for the Project : ${projectId}`);
+        logger.error(err);
+        throw err;
+    }
+}

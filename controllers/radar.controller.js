@@ -6,6 +6,7 @@ const { _doesProjectIdAndApiKeyMatches, _getProjectById } = require("../utils/pr
 const { _doesThisApiAlreadyExists, _isApiDown, _getAPIUsingId, _createApiModelAndSaveInDb, _updateApiModelAndSaveInDb } = require("../utils/apiModel.utils");
 const CustomError = require("../utils/customError");
 const { _isRadarExists, _addRadarOnApi, _updateRadar, _generateApiHitsReport } = require("../utils/radar.utils");
+const { sendAlert } = require("../services/alert.service");
 // const { checkApiInCache, saveApiInCache } = require("../services/redis.service");
 
 
@@ -55,6 +56,7 @@ exports.onboardApisAsPerHits = BigPromise(async (req, res, next) => {
         // If the API is down, notify the team
         if (_isApiDown(apiLogInfo.statusCode)) {
             logger.info(`INFO || API : ${apiObj._id} is down, sending out emails to relevant persons in the project`);
+            sendAlert(apiObj)
         }
         let checkapiKeyAndProjectId = await _doesProjectIdAndApiKeyMatches(projectId, apiKey);
         if (!checkapiKeyAndProjectId) {
@@ -92,6 +94,7 @@ exports.onboardApisAsPerHits = BigPromise(async (req, res, next) => {
 
         if (_isApiDown(apiLogInfo.statusCode)) {
             logger.info(`INFO || API : ${apiObj._id} is down sending out emails to realted person in project`);
+            sendAlert(apiObj);
         }
 
         await _updateApiModelAndSaveInDb(apiObj, apiLogInfo);
