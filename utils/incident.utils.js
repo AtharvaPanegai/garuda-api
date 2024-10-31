@@ -75,3 +75,16 @@ exports._reportIncident = async (apiObj,apiLogInfo) =>{
         throw err;
     }
 }
+
+exports._addIncidentSteps = async (stepsObject,apiId) =>{
+    try{
+        let recentIncident = await _checkIfAnyIncidentAroundSameTime(apiId);
+        recentIncident.stepsAfterFailure.push(stepsObject);
+        await _updateIncident(recentIncident);
+        logger.info(`INFO || Steps updated in the incident doc for api : ${apiId}`);
+    }catch(err){
+        logger.error(`Error || Error adding incident steps`);
+        logger.error(err);
+        throw err;
+    }
+}

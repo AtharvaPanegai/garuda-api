@@ -3,6 +3,7 @@ const logger = require("logat");
 const nodemailer = require("nodemailer");
 // const twilio = require("twilio");
 const moment = require("moment");
+const { _addIncidentSteps } = require("../utils/incident.utils");
 require('dotenv').config();
 
 
@@ -99,7 +100,6 @@ const sendAlert = async (apiObj) => {
   let onCallPerson;
 
   try {
-    // Get the On-call person for the project
     onCallPerson = await _getOnCallPersonFromProjectId(projectId);
   } catch (err) {
     logger.error(`Error || Error in getting onCall Person while sending Alert for API: ${apiObj._id}`);
@@ -111,7 +111,13 @@ const sendAlert = async (apiObj) => {
   if (onCallPerson?.onCallPersonEmail) {
     logger.info(`INFO || Sending Email Alert for API: ${apiObj._id} at ${moment().format('lll')}`);
     let emailOptions = _getEmailOptions(onCallPerson.onCallPersonEmail, apiObj);
-    await _sendEmail(emailOptions); // Send Email
+    await _sendEmail(emailOptions); 
+    let emailSteps = {
+      incidentTime : `${moment().format("lll")}`,
+      step : `Email Sent to ${onCallPerson.onCallPersonEmail} at ${moment().format('lll')}`,
+    }
+
+    await _addIncidentSteps(emailSteps,apiObj._id);
   }
 
   // Check if on-call person has a phone number configured
