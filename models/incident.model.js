@@ -21,6 +21,10 @@ const incidentSchema = new Schema({
     stepsAfterFailure : [{
         type : Object
     }],
+    totalFailedApiCalls : {
+        type : Number,
+        required : true
+    },
     createdAt : {
         type : Date,
         default : Date.now
