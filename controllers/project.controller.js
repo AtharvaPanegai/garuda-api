@@ -4,7 +4,7 @@ const logger = require("logat");
 const User = require("../models/user.model");
 const CustomError = require("../utils/customError");
 const Project = require("../models/project.model");
-const { _updateProjectDetailsUsingId, _isOnCallPersonExistsForThisProject, _doesThisProjectExists, _getTotalApisForProject, _getOverallStatusCodesAndGraphDataForProjectReport } = require("../utils/project.utils");
+const { _updateProjectDetailsUsingId, _isOnCallPersonExistsForThisProject, _doesThisProjectExists, _getTotalApisForProject, _getOverallStatusCodesAndGraphDataForProjectReport, _getProjectsUsingCustomerId, _getTotalApisForProjectCount } = require("../utils/project.utils");
 const { _saveProjectInUser } = require("../utils/user.utils");
 const { _getIncidentsAsPerProject } = require("../utils/incident.utils");
 const moment = require("moment");
@@ -120,7 +120,7 @@ exports.getCummulitiveProjectReport = BigPromise(async (req, res, next) => {
     let projectReport;
 
     try {
-        let totalApisAdded = await _getTotalApisForProject(projectId);
+        let totalApisAdded = await _getTotalApisForProjectCount(projectId);
         let totalIncidents = await _getIncidentsAsPerProject(projectId);
         let { mostCapturedStatusCode, apiHitsReport } = await _getOverallStatusCodesAndGraphDataForProjectReport(projectId);
         let projectAge = moment(project.createdAt).fromNow();
@@ -135,15 +135,33 @@ exports.getCummulitiveProjectReport = BigPromise(async (req, res, next) => {
             apiHitsReport: apiHitsReport
         }
 
-    }catch(err){
+    } catch (err) {
         logger.error(`Error || Error in Generating Report for Project : ${projectId}`);
         logger.error(err);
-        throw new CustomError("Error in generating Project report, Try again after sometime",500);
+        throw new CustomError("Error in generating Project report, Try again after sometime", 500);
     }
 
     res.status(200).json({
-        message : "Project Report Generated Sucessfully!",
+        message: "Project Report Generated Sucessfully!",
         projectReport
     })
 
+})
+
+
+exports.getAllApisInProject = BigPromise(async (req, res, next) => {
+    const { projectId, customerId } = req.body;
+
+    let project = await _doesThisProjectExists(projectId);
+
+    if (project && project.customer == customerId) {
+        let apis = await _getTotalApisForProject(projectId);
+        res.status(200).json({
+            message: "Apis fetched successfully",
+            apis
+        })
+    } else {
+        let error = new CustomError("Authorization Failed", 401);
+        throw error;
+    }
 })

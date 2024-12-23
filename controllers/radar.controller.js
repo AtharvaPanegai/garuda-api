@@ -3,9 +3,9 @@
 const BigPromise = require("../middlewares/BigPromise");
 const logger = require("logat");
 const { _doesProjectIdAndApiKeyMatches, _getProjectById } = require("../utils/project.utils");
-const { _doesThisApiAlreadyExists, _isApiDown, _getAPIUsingId, _createApiModelAndSaveInDb, _updateApiModelAndSaveInDb } = require("../utils/apiModel.utils");
+const { _doesThisApiAlreadyExists, _isApiDown, _getAPIUsingId, _createApiModelAndSaveInDb, _updateApiModelAndSaveInDb, _updateApiModelUsingId } = require("../utils/apiModel.utils");
 const CustomError = require("../utils/customError");
-const { _isRadarExists, _addRadarOnApi, _updateRadar, _generateApiHitsReport } = require("../utils/radar.utils");
+const { _isRadarExists, _addRadarOnApi, _updateRadar, _generateApiHitsReport, _deleteRadarFromApi } = require("../utils/radar.utils");
 const { sendAlert } = require("../services/alert.service");
 const { _reportIncident } = require("../utils/incident.utils");
 // const { checkApiInCache, saveApiInCache } = require("../services/redis.service");
@@ -51,6 +51,18 @@ exports.onboardApisAsPerHits = BigPromise(async (req, res, next) => {
     logger.info(`INFO || Project Exists and API key also matched with project Id : ${projectId} ... proceeding further`);
 
     let apiObj = await _doesThisApiAlreadyExists(apiLogInfo.method, apiLogInfo.path, project._id);
+    if (apiObj?.isRadarEnabled) {
+        logger.info(`INFO || Radar is Disabled for this API... returning`);
+        // move this to redis in next iteration
+        res.status(201).json({
+            message: "monitoring isn't enabled for this api yet",
+            path: apiObj.apiEndPoint,
+            method: apiObj.apiMethod,
+            apiId: apiObj._id
+        })
+        return;
+    }
+
     if (!apiObj) {
         logger.info(`INFO || API Hit came for the first Time... for projectId : ${projectId}`);
         apiObj = await _createApiModelAndSaveInDb(project, apiLogInfo);
@@ -58,7 +70,7 @@ exports.onboardApisAsPerHits = BigPromise(async (req, res, next) => {
         if (_isApiDown(apiLogInfo.statusCode)) {
             logger.info(`INFO || API : ${apiObj._id} is down, sending out emails to relevant persons in the project`);
             sendAlert(apiObj);
-            _reportIncident(apiObj,apiLogInfo);
+            _reportIncident(apiObj, apiLogInfo);
 
         }
         let checkapiKeyAndProjectId = await _doesProjectIdAndApiKeyMatches(projectId, apiKey);
@@ -91,14 +103,14 @@ exports.onboardApisAsPerHits = BigPromise(async (req, res, next) => {
             logger.info(`INFO || Initiating radar for this api with id : ${apiObj._id}`);
             await _addRadarOnApi(apiLogInfo, apiObj);
         } else {
-            await _updateRadar(isRadarPresentForApi,apiLogInfo);
+            await _updateRadar(isRadarPresentForApi, apiLogInfo);
         }
 
 
         if (_isApiDown(apiLogInfo.statusCode)) {
             logger.info(`INFO || API : ${apiObj._id} is down sending out emails to realted person in project`);
             sendAlert(apiObj);
-            _reportIncident(apiObj,apiLogInfo);
+            _reportIncident(apiObj, apiLogInfo);
         }
 
         await _updateApiModelAndSaveInDb(apiObj, apiLogInfo);
@@ -114,7 +126,7 @@ exports.onboardApisAsPerHits = BigPromise(async (req, res, next) => {
 
 
 exports.getReportOfSingleApi = BigPromise(async (req, res, next) => {
-    const { apiId, projectId,duration } = req.body;
+    const { apiId, projectId, duration } = req.body;
 
     if (!apiId || !projectId) {
         logger.error(`Error || Either one of apiId or project id is missing`);
@@ -130,18 +142,43 @@ exports.getReportOfSingleApi = BigPromise(async (req, res, next) => {
 
     let radarObj = await _isRadarExists(apiDoc._id);
 
-    if(!radarObj){
+    if (!radarObj) {
         logger.error(`Error || Radar Object Not found for this API with Id : ${apiDoc._id}`);
-        throw new CustomError("Radar Missing For this API Contact Support Team",500);
+        throw new CustomError("Radar Missing For this API Contact Support Team", 500);
     }
-    
-    let apiReport = _generateApiHitsReport(radarObj,duration); 
+
+    let apiReport = _generateApiHitsReport(radarObj, duration);
 
     // Adding radar object for rendering other crucial information such as the Avg statusCode avg response time etc
     res.status(200).json({
-        message : "Report generated for given time duration",
+        message: "Report generated for given time duration",
         apiReport,
         radarObj
     })
 
+})
+
+
+exports.enableOrDisableRadarOnApi = BigPromise(async (req, res, next) => {
+    const { reqType, apiId } = req.body;
+    if (reqType === 'ADD') {
+
+        await _updateApiModelUsingId(apiId, { "isRadarEnabled": true });
+        res.status(200).json({
+            message: "Radar is Enabled for API",
+            success: true
+        });
+    } else if (reqType === 'REMOVE') {
+        logger.info(`INFO || Radar is being enabled for api : ${apiId}`);
+        await _deleteRadarFromApi(apiId)
+        await _updateApiModelUsingId(apiId, { "isRadarEnabled": false });
+
+        res.status(200).json({
+            message: "Radar disabled for this API",
+            success: true
+        })
+    } else {
+        let error = new CustomError("ReqType is expected!", 422);
+        throw error;
+    }
 })
