@@ -51,18 +51,16 @@ exports.onboardApisAsPerHits = BigPromise(async (req, res, next) => {
     logger.info(`INFO || Project Exists and API key also matched with project Id : ${projectId} ... proceeding further`);
 
     let apiObj = await _doesThisApiAlreadyExists(apiLogInfo.method, apiLogInfo.path, project._id);
-    if(!apiObj?.isRadarEnabled){
-        if(apiObj){    
-            logger.info(`INFO || Radar is Disabled for this API... returning`);
-            // move this to redis in next iteration
-            res.status(201).json({
-                message : "monitoring isn't enabled for this api yet",
-                path : apiObj.apiEndPoint,
-                method : apiObj.apiMethod,
-                apiId : apiObj._id
-            })
-            return;
-        }
+    if (apiObj?.isRadarEnabled) {
+        logger.info(`INFO || Radar is Disabled for this API... returning`);
+        // move this to redis in next iteration
+        res.status(201).json({
+            message: "monitoring isn't enabled for this api yet",
+            path: apiObj.apiEndPoint,
+            method: apiObj.apiMethod,
+            apiId: apiObj._id
+        })
+        return;
     }
 
     if (!apiObj) {
@@ -163,24 +161,24 @@ exports.getReportOfSingleApi = BigPromise(async (req, res, next) => {
 
 exports.enableOrDisableRadarOnApi = BigPromise(async (req, res, next) => {
     const { reqType, apiId } = req.body;
-    if(reqType === 'ADD'){
-        
-        await _updateApiModelUsingId(apiId,{"isRadarEnabled" : true});
+    if (reqType === 'ADD') {
+
+        await _updateApiModelUsingId(apiId, { "isRadarEnabled": true });
         res.status(200).json({
-            message : "Radar is Enabled for API",
-            success : true
+            message: "Radar is Enabled for API",
+            success: true
         });
-    }else if(reqType === 'REMOVE'){
+    } else if (reqType === 'REMOVE') {
         logger.info(`INFO || Radar is being enabled for api : ${apiId}`);
         await _deleteRadarFromApi(apiId)
-        await _updateApiModelUsingId(apiId,{"isRadarEnabled" : false});
+        await _updateApiModelUsingId(apiId, { "isRadarEnabled": false });
 
         res.status(200).json({
-            message : "Radar disabled for this API",
-            success : true
+            message: "Radar disabled for this API",
+            success: true
         })
-    }else{
-        let error = new CustomError("ReqType is expected!",422);
+    } else {
+        let error = new CustomError("ReqType is expected!", 422);
         throw error;
     }
 })
