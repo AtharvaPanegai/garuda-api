@@ -183,6 +183,16 @@ exports._addRadarOnApi = async (apiLogInfo, apiObj) => {
     }
 }
 
+exports._deleteRadarFromApi = async(apiId) =>{
+    try{
+        await Radar.deleteOne({apiId : apiId});
+    }catch(err){
+        logger.error(`Error || Error in deleting the Radar for API : ${apiId}`);
+        logger.error(err);
+        throw err;
+    }
+}
+
 exports._generateApiHitsReport = (radarObj, graphMins) => {
 
     let graphOptions = {

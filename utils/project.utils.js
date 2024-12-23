@@ -28,6 +28,11 @@ exports._getProjectUsingCustomerIdAndApiKey = async (userId, apiKey) => {
     return project
 }
 
+exports._getProjectsUsingCustomerId = async(customerId) =>{
+    let projects = await Project.find({customer : customerId});
+    return projects;
+}
+
 exports._updateProjectDetailsUsingId = async (projectId, updateObj) => {
     try {
         await Project.findByIdAndUpdate(projectId, updateObj);
@@ -55,7 +60,7 @@ exports._isOnCallPersonExistsForThisProject = async (projectId) => {
     }
 }
 
-exports._getTotalApisForProject = async (projectId) =>{
+exports._getTotalApisForProjectCount = async (projectId) =>{
     try{
         let countOfApis = await ApiModel.countDocuments({project : projectId}); 
         return countOfApis;
@@ -65,6 +70,18 @@ exports._getTotalApisForProject = async (projectId) =>{
         throw err;
     }
 }
+
+exports._getTotalApisForProject = async(projectId) =>{
+    try{
+        let countOfApis = await ApiModel.find({project : projectId}); 
+        return countOfApis;
+    }catch(err){
+        logger.error(`Error || Error in getting total apis added in project with Id : ${projectId}`);
+        logger.error(err);
+        throw err;
+    }
+}
+
 
 const _getMostCapturedStatusCode = (statusCodesArray) => {
     const statusCodeCount = {};

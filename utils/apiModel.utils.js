@@ -105,4 +105,17 @@ exports._updateApiModelAndSaveInDb = async (apiObj, apiLogInfo) => {
 }
 
 
+exports._getAllApisByProjectId = async (projectId) =>{
+    try{
+        let apis = await apiModel.find({project : projectId});
+        return apis;
+    }catch(err){
+        logger.error(`Error || Error in finding the apis with projectId : ${projectId}`);
+        logger.error(err);
+        throw err;   
+    }
+}
+
+
 module.exports._isApiDown = _isApiDown;
+module.exports._updateApiModelUsingId = _updateApiModelUsingId;

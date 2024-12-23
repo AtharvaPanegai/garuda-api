@@ -3,6 +3,7 @@ const User = require("../models/user.model");
 const CustomError = require("../utils/customError");
 const logger = require("logat");
 const { _getCookieToken, _getUserUsingId, _updateUserInfoUsingGivenData, _createUser, _deleteUser, _getUsernamesInProject } = require("../utils/user.utils");
+const { _getProjectsUsingCustomerId } = require("../utils/project.utils");
 
 exports.signUp = BigPromise(async (req, res, next) => {
     const { username, emailId, phoneNumber, companyName, password, customerPlan } = req.body;
@@ -100,4 +101,16 @@ exports.handleUniqueUsernames = BigPromise(async (req, res, next) => {
     });
 
 
+})
+
+
+exports.getAllProjectsUnderCustomer = BigPromise(async (req, res, next) => {
+    const { customerId } = req.body;
+
+    let projects = await _getProjectsUsingCustomerId(customerId);
+
+    res.status(200).json({
+        message : `Total Projects are ${projects.length}`,
+        projects
+    })
 })

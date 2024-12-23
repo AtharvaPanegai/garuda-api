@@ -22,6 +22,10 @@ const apiSchema = new Schema({
         type : Boolean,
         required : false,
     },
+    isRadarEnabled : {
+        type : Boolean,
+        required : false
+    },
     createdAt : {
         type : Date,
         default : Date.now
