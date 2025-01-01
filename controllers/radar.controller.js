@@ -51,14 +51,14 @@ exports.onboardApisAsPerHits = BigPromise(async (req, res, next) => {
     logger.info(`INFO || Project Exists and API key also matched with project Id : ${projectId} ... proceeding further`);
 
     let apiObj = await _doesThisApiAlreadyExists(apiLogInfo.method, apiLogInfo.path, project._id);
-    if (!apiObj?.isRadarEnabled) {
+    if (apiObj?.isRadarEnabled === false) {
         logger.info(`INFO || Radar is Disabled for this API... returning`);
         // move this to redis in next iteration
         res.status(201).json({
             message: "monitoring isn't enabled for this api yet",
-            path: apiObj.apiEndPoint,
-            method: apiObj.apiMethod,
-            apiId: apiObj._id
+            path: apiObj?.apiEndPoint,
+            method: apiObj?.apiMethod,
+            apiId: apiObj?._id
         })
         return;
     }
