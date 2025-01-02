@@ -97,7 +97,7 @@ const _getMostCapturedStatusCode = (statusCodesArray) => {
     return parseInt(mostCapturedStatusCode);
 };
 
-const _calculateHitsForLast7Days = (radarObjects) =>{
+const _calculateHitsForLast7Days = (radarObjects) => {
     const hitsByDay = {};
 
     // Traverse through each radar object
@@ -111,14 +111,18 @@ const _calculateHitsForLast7Days = (radarObjects) =>{
         });
     });
 
-    const last7Days = {};
+    const last7Days = [];
     for (let i = 0; i < 7; i++) {
         const day = moment().subtract(i, 'days').format('YYYY-MM-DD');
-        last7Days[day] = hitsByDay[day] || 0; // Get hits or 0 if no hits for the day
+        last7Days.push({
+            date: day,
+            hits: hitsByDay[day] || 0 // Get hits or 0 if no hits for the day
+        });
     }
 
     return last7Days;
-}
+};
+
 
 exports._getOverallStatusCodesAndGraphDataForProjectReport = async (projectId) =>{
     try{            
