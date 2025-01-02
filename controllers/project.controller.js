@@ -122,7 +122,7 @@ exports.getCummulitiveProjectReport = BigPromise(async (req, res, next) => {
     try {
         let totalApisAdded = await _getTotalApisForProjectCount(projectId);
         let totalIncidents = await _getIncidentsAsPerProject(projectId);
-        let { mostCapturedStatusCode, apiHitsReport } = await _getOverallStatusCodesAndGraphDataForProjectReport(projectId);
+        let { mostCapturedStatusCode, apiHitsReport,statusSummaryArray } = await _getOverallStatusCodesAndGraphDataForProjectReport(projectId);
         let projectAge = moment(project.createdAt).fromNow();
 
         projectReport = {
@@ -132,7 +132,8 @@ exports.getCummulitiveProjectReport = BigPromise(async (req, res, next) => {
             overAllStatusCode: mostCapturedStatusCode,
             projectAge: projectAge,
             onCallPerson: project.onCallPerson?.onCallPersonName || "No onCall Person",
-            apiHitsReport: apiHitsReport
+            apiHitsReport: apiHitsReport,
+            statusSummaryArray 
         }
 
     } catch (err) {

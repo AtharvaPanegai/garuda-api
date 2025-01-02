@@ -124,6 +124,56 @@ const _calculateHitsForLast7Days = (radarObjects) => {
 };
 
 
+const _generateStatusSummary = (radarsForProject)=> {
+    // Mapping of status codes to their corresponding names
+    const statusMapping = {
+        200: "Success",
+        201: "Created",
+        202: "Accepted",
+        204: "No Content",
+        400: "Bad Request",
+        401: "Unauthorized",
+        403: "Forbidden",
+        404: "Not Found",
+        408: "Request Timeout",
+        429: "Rate Limit",
+        500: "Internal Server Error",
+        502: "Bad Gateway",
+        503: "Service Unavailable",
+        504: "Gateway Timeout",
+        100: "Rate Limit",
+        300: "Timeout",
+    };
+
+    // Object to accumulate counts for each status code
+    const statusCountMap = {};
+
+    // Iterate through the input data
+    radarsForProject.forEach(api => {
+        api.statusCodesPerTimeFrame.forEach(statusEntry => {
+            statusEntry.statusCodes.forEach(codeEntry => {
+                const statusCode = codeEntry.statusCode;
+                const count = codeEntry.count;
+
+                // Initialize or update the count for the status code
+                if (!statusCountMap[statusCode]) {
+                    statusCountMap[statusCode] = 0;
+                }
+                statusCountMap[statusCode] += count;
+            });
+        });
+    });
+
+    // Transform the accumulated data into the desired format
+    return Object.keys(statusCountMap).map(statusCode => {
+        return {
+            name: statusMapping[parseInt(statusCode, 10)] || `Status ${statusCode}`,
+            value: statusCountMap[statusCode],
+        };
+    });
+}
+
+
 exports._getOverallStatusCodesAndGraphDataForProjectReport = async (projectId) =>{
     try{            
         let statusCodesArray = [];
@@ -134,7 +184,8 @@ exports._getOverallStatusCodesAndGraphDataForProjectReport = async (projectId) =
 
         let apiHitsReport = _calculateHitsForLast7Days(radarsForProject);
         let mostCapturedStatusCode = _getMostCapturedStatusCode(statusCodesArray);
-        return {mostCapturedStatusCode,apiHitsReport};
+        let statusSummaryArray = _generateStatusSummary(radarsForProject);
+        return {mostCapturedStatusCode,apiHitsReport,statusSummaryArray};
 
     }catch(err){    
         logger.error(`Error || Error in getting the most common status across all apis hosted for project : ${projectId}`);
