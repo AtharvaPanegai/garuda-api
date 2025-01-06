@@ -84,17 +84,22 @@ exports._getTotalApisForProject = async(projectId) =>{
 
 
 const _getMostCapturedStatusCode = (statusCodesArray) => {
-    const statusCodeCount = {};
+    if(statusCodesArray.length > 1){
 
-    statusCodesArray.forEach(code => {
-        statusCodeCount[code] = (statusCodeCount[code] || 0) + 1;
-    });
-
-    const mostCapturedStatusCode = Object.keys(statusCodeCount).reduce((a, b) =>
-        statusCodeCount[a] > statusCodeCount[b] ? a : b
+        const statusCodeCount = {};
+        
+        statusCodesArray.forEach(code => {
+            statusCodeCount[code] = (statusCodeCount[code] || 0) + 1;
+        });
+        
+        const mostCapturedStatusCode = Object.keys(statusCodeCount).reduce((a, b) =>
+            statusCodeCount[a] > statusCodeCount[b] ? a : b
     );
-
+    
     return parseInt(mostCapturedStatusCode);
+    }else{
+        return null
+    }
 };
 
 const _calculateHitsForLast7Days = (radarObjects) => {
