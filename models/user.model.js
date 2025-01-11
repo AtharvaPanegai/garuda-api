@@ -8,6 +8,7 @@ const customerSchema = new Schema({
     username : {
         type : String,
         required : true,
+        unique : true
     },
     phoneNumber : {
         type : String,
@@ -26,6 +27,7 @@ const customerSchema = new Schema({
     emailId : {
         type : String,
         required : true,
+        unique : true
     },
     password : {
         type : String,

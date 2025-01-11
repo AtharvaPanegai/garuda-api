@@ -4,7 +4,8 @@ const { Schema, default: mongoose } = require("mongoose");
 const projectSchema = new Schema({
     projectName : {
         type : String,
-        required : true
+        required : true,
+        unique:true
     },
     customer : {
         type : Schema.Types.ObjectId,
