@@ -5,6 +5,8 @@ const nodemailer = require("nodemailer");
 const moment = require("moment");
 const { _addIncidentSteps } = require("../utils/incident.utils");
 require('dotenv').config();
+const suppotConfirmationTemplate = require("../templates/supportRequestConfirmationEmailTemplate.js");
+const supportRequestTemplate = require("../templates/supportRequestEmailToInternal.js");
 
 
 const transporter = nodemailer.createTransport({
@@ -40,7 +42,7 @@ const _sendSMS = async (smsOptions) => {
 
 const _getEmailOptions = (emailId, apiObj) => {
     return {
-      from: process.env.EMAIL_FROM, // Your email
+      from: "Alerts" +process.env.EMAIL_FROM, // Your email
       to: emailId, // Recipient email
       subject: `⚠️ Alert for API: ${apiObj.apiEndPoint}`, // Subject of the email
       html: `
@@ -135,6 +137,47 @@ const sendAlert = async (apiObj) => {
   return;
 };
 
+const _parseEmailTemplateForSupportRequests = (template,values) =>{
+  const { name, email, message } = values;
+
+    return template
+        .replace(/{{name}}/g, name)
+        .replace(/{{email}}/g, email)
+        .replace(/{{message}}/g, message);
+
+}
+
+const sendSupportRequestsToEmail = async (name, email , message) => {
+  try{
+
+    const parsedEmailInternal = _parseEmailTemplateForSupportRequests(supportRequestTemplate,{name,email,message});
+    const parsedEmailForCustomer = _parseEmailTemplateForSupportRequests(suppotConfirmationTemplate,{name,email,message});
+    
+  let supportEmailOptionsForInternal = {
+    from: "Support Notification" + process.env.EMAIL_FROM, 
+      to: "shreejisventures@gmail.com",
+      subject: `New Support Request Raised for : ${name}`,
+      html : parsedEmailInternal
+    }
+    
+    await _sendEmail(supportEmailOptionsForInternal);
+    
+    let supportEmailConfirmationForCustomer = {
+      from: "Support Notification" + process.env.EMAIL_FROM, 
+      to: email,
+      subject: `Garuda Support: Request Received and Under Review`,
+      html : parsedEmailForCustomer
+    }
+    
+    await _sendEmail(supportEmailConfirmationForCustomer);
+  }catch(err){
+    logger.error(`Error || Error in sending support email confirmation to customer : ${email}`);
+    logger.error(err);
+    throw err;
+  }
+}
+
 module.exports = {
   sendAlert,
+  sendSupportRequestsToEmail
 };

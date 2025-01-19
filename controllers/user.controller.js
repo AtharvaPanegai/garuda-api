@@ -4,6 +4,7 @@ const CustomError = require("../utils/customError");
 const logger = require("logat");
 const { _getCookieToken, _getUserUsingId, _updateUserInfoUsingGivenData, _createUser, _deleteUser, _getUsernamesInProject } = require("../utils/user.utils");
 const { _getProjectsUsingCustomerId } = require("../utils/project.utils");
+const { sendSupportRequestsToEmail } = require("../services/alert.service");
 
 exports.signUp = BigPromise(async (req, res, next) => {
     const { username, emailId, phoneNumber, companyName, password, customerPlan } = req.body;
@@ -124,5 +125,16 @@ exports.getAllProjectsUnderCustomer = BigPromise(async (req, res, next) => {
     res.status(200).json({
         message : `Total Projects are ${projects.length}`,
         projects
+    })
+})
+
+exports.postSupportMessages = BigPromise(async(req,res,next)=>{
+    const {name,email,message} = req.body;
+
+    await sendSupportRequestsToEmail(name,email,message);
+
+    res.status(200).json({
+        success:true,
+        message : "Your Support request has sent!"
     })
 })
