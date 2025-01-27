@@ -51,6 +51,10 @@ const customerSchema = new Schema({
     ],   
     forgotPasswordToken: String,
     forgotPasswordExpiry: Date,
+    isBetaSignup : {
+      type : Boolean,
+      default : true
+    },
     createdAt : {
         type : Date,
         default : Date.now
