@@ -1,3 +1,4 @@
+const apiModel = require("../models/api.model");
 const Radar = require("../models/radar.model");
 const logger = require("logat");
 
@@ -60,7 +61,60 @@ const _getMostCapturedStatusCode = (radarObj, newStatusCode) => {
     return mostCapturedStatusCode;
 };
 
+const _getBulkUpdateAvgResponseTime = (apiLogs,bulkHits,radarHits,radarAvgResponseTime) =>{
+    // calculate total response time for the bulk hits
+    let totalResponseTimeForBulk = 0;
+    apiLogs.forEach((apiLog)=>{
+        totalResponseTimeForBulk += parseFloat(apiLog?.responseTime?.replace(" ms", ""));
+    })
 
+    // calculate total response time for radar object
+    let totalResponseTimeForRadar = radarHits * radarAvgResponseTime.replace(" ms", "");
+
+    // combine both totalresponse times
+    let totalResponseTimeBoth = totalResponseTimeForBulk + totalResponseTimeForRadar;
+
+    return (totalResponseTimeBoth / (bulkHits + radarHits)).toFixed(3) + ' ms';
+
+};
+
+const _getBulkUpdateAvgStatusCode = (apiLogs,radarObj) =>{
+    const statusCodes = {};
+
+    // Traverse through all statusCodesPerTimeFrame to calculate the cumulative count of each status code
+    radarObj.statusCodesPerTimeFrame.forEach((timeFrame) => {
+        timeFrame.statusCodes.forEach((statusCodeObj) => {
+            const statusCode = statusCodeObj.statusCode;
+            const count = statusCodeObj.count;
+
+            // Accumulate count for each status code
+            if (statusCodes[statusCode]) {
+                statusCodes[statusCode] += count;
+            } else {
+                statusCodes[statusCode] = count;
+            }
+        });
+    });
+
+    // process the bulk ApiLogs
+    apiLogs.forEach((apiLog) => {
+        statusCodes[apiLog.statusCode] = (statusCodes[apiLog.statusCode] || 0) + 1;
+    });
+
+
+    // Find the status code with the highest count
+    let mostCapturedStatusCode = null;
+    let maxCount = 0;
+
+    for (const [code, count] of Object.entries(statusCodes)) {
+        if (count > maxCount) {
+            mostCapturedStatusCode = code;
+            maxCount = count;
+        }
+    }
+
+    return mostCapturedStatusCode;
+}
 
 const _getCreationObject = (apiLogInfo, apiObj) => {
     let currentMinute = new Date();
@@ -104,6 +158,62 @@ const _getCreationObject = (apiLogInfo, apiObj) => {
     return creationObject;
 }
 
+const _getBulkUpdationObject = (apiLogs,radar,hits) =>{
+    let currentMinute = new Date();
+    currentMinute.setSeconds(0, 0);
+
+    let timeframe = currentMinute.toISOString();
+
+    // Initialize or retrieve hits array
+    let hitsArray = radar && radar.hitsPerTimeFrame ? radar.hitsPerTimeFrame : [];
+    let statusCodesArray = radar && radar.statusCodesPerTimeFrame ? radar.statusCodesPerTimeFrame : [];
+
+    // Update hits array for the current timeframe
+    let hitEntry = hitsArray.find(entry => entry.timeframe === timeframe);
+    if (hitEntry) {
+        hitEntry.hits += hits;
+    } else {
+        hitsArray.push({ timeframe: timeframe, hits: hits });
+    }
+
+    // Update status codes array for the current timeframe
+    // Can optimize this by using a hashmap for status codes
+    apiLogs.forEach(apiLogInfo => {
+        let statusEntry = statusCodesArray.find(entry => entry.timeframe === timeframe);
+        if (statusEntry) {
+            let statusCodeEntry = statusEntry.statusCodes.find(status => status.statusCode === apiLogInfo.statusCode);
+            if (statusCodeEntry) {
+                statusCodeEntry.count += 1;
+            } else {
+                statusEntry.statusCodes.push({ statusCode: apiLogInfo.statusCode, count: 1 });
+            }
+        } else {
+            statusCodesArray.push({
+                timeframe: timeframe,
+                statusCodes: [
+                    { statusCode: apiLogInfo.statusCode, count: 1 }
+                ]
+            });
+        }
+    });
+
+
+    let avgResponseTime = _getBulkUpdateAvgResponseTime(apiLogs,hits,radar.totalHitsTillNow,radar.apiAverageResponseTime);
+    let avgStatuscode = _getBulkUpdateAvgStatusCode(apiLogs,radar);
+
+    let updationObject = {
+        apiId: radar.apiId,
+        hitsPerTimeFrame: hitsArray,
+        statusCodesPerTimeFrame: statusCodesArray,
+        apiMostRecentStatusCode: apiLogs[0].statusCode,
+        apiMostRecentResponseTime: apiLogs[0].responseTime,
+        apiMostCapturedStatusCode: avgStatuscode,
+        apiAverageResponseTime: avgResponseTime,
+        totalHitsTillNow: radar.totalHitsTillNow + hits
+    };
+
+    return updationObject;
+}
 
 const _getUpdationObject = (apiLogInfo, radar) => {
     let currentMinute = new Date();
@@ -166,6 +276,29 @@ exports._updateRadar = async (radar, apiLogInfo) => {
         return true;
     } catch (err) {
         logger.error(`Error || Error in updating the perfromace metrics for id : ${radar._id}`);
+        logger.error(err);
+        throw err;
+    }
+}
+
+
+exports._bulkUpdateRadar = async (apiEndPoint,apiLogs,hits) =>{
+    let apiObj,radarObject;
+    try{
+        try{
+
+            apiObj = await apiModel.findOne({apiEndPoint :apiEndPoint},{_id : 1});
+            radarObject = await Radar.findOne({apiId : apiObj._id});
+        }catch(err){
+            logger.error(`Error || Error in fetching the apiModel or RadarObject for apiEndPoint : ${apiEndPoint}`);
+            logger.error(err);
+            throw err;
+        }
+        let updateObject = _getBulkUpdationObject(apiLogs,radarObject,hits);
+        await Radar.updateOne({_id : radarObject._id},updateObject);
+        return true;
+    }catch(err){
+        logger.error(`Error || Error in updating the performance metrics for id : ${radarObject._id}`);
         logger.error(err);
         throw err;
     }
