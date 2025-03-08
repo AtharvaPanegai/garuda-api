@@ -3,9 +3,9 @@
 const BigPromise = require("../middlewares/BigPromise");
 const logger = require("logat");
 const { _doesProjectIdAndApiKeyMatches, _getProjectById } = require("../utils/project.utils");
-const { _doesThisApiAlreadyExists, _isApiDown, _getAPIUsingId, _createApiModelAndSaveInDb, _updateApiModelAndSaveInDb, _updateApiModelUsingId } = require("../utils/apiModel.utils");
+const { _doesThisApiAlreadyExists, _isApiDown, _getAPIUsingId, _createApiModelAndSaveInDb, _updateApiModelAndSaveInDb, _updateApiModelUsingId, _findApiUsingProjectKeyAndPath } = require("../utils/apiModel.utils");
 const CustomError = require("../utils/customError");
-const { _isRadarExists, _addRadarOnApi, _updateRadar, _generateApiHitsReport, _deleteRadarFromApi } = require("../utils/radar.utils");
+const { _isRadarExists, _addRadarOnApi, _updateRadar, _generateApiHitsReport, _deleteRadarFromApi, _bulkUpdateRadar } = require("../utils/radar.utils");
 const { sendAlert } = require("../services/alert.service");
 const { _reportIncident } = require("../utils/incident.utils");
 // const { checkApiInCache, saveApiInCache } = require("../services/redis.service");
@@ -180,5 +180,34 @@ exports.enableOrDisableRadarOnApi = BigPromise(async (req, res, next) => {
     } else {
         let error = new CustomError("ReqType is expected!", 422);
         throw error;
+    }
+})
+
+exports.bulkProcessFromCaching = BigPromise(async (req, res, next) => {
+    logger.info(`INFO || Bulk Processing from Caching is being initiated at : ${new Date().toISOString()}`);
+
+    const { bulkData } = req.body;
+
+    // traverse through the bulkData and process it further (bulkData is an object)
+
+    try {
+        await Promise.all(
+            Object.entries(bulkData).map(async ([apiPath, apiData]) => {
+                await _bulkUpdateRadar(apiPath, apiData.apiLogs, apiData.hits);
+                logger.info(`INFO || Bulk Data Successfully updated for API path: ${apiPath}`);
+            })
+        );
+
+        return res.status(200).json({
+            statusCode: 200,
+            message: "Bulk Data Updated Successfully"
+        });
+    } catch (error) {
+        logger.error(`ERROR || Bulk processing failed: ${error.message}`);
+        return res.status(500).json({
+            statusCode: 500,
+            message: "Bulk Processing Failed",
+            error: error.message
+        });
     }
 })
