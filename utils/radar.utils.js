@@ -1,7 +1,8 @@
 const apiModel = require("../models/api.model");
 const Radar = require("../models/radar.model");
 const logger = require("logat");
-
+const { _getAPIUsingId } = require("./apiModel.utils");
+const axios = require("axios");
 exports._isRadarExists = async (apiId) => {
     let radarModel = await Radar.findOne({ apiId: apiId });
 
@@ -61,10 +62,10 @@ const _getMostCapturedStatusCode = (radarObj, newStatusCode) => {
     return mostCapturedStatusCode;
 };
 
-const _getBulkUpdateAvgResponseTime = (apiLogs,bulkHits,radarHits,radarAvgResponseTime) =>{
+const _getBulkUpdateAvgResponseTime = (apiLogs, bulkHits, radarHits, radarAvgResponseTime) => {
     // calculate total response time for the bulk hits
     let totalResponseTimeForBulk = 0;
-    apiLogs.forEach((apiLog)=>{
+    apiLogs.forEach((apiLog) => {
         totalResponseTimeForBulk += parseFloat(apiLog?.responseTime?.replace(" ms", ""));
     })
 
@@ -78,7 +79,7 @@ const _getBulkUpdateAvgResponseTime = (apiLogs,bulkHits,radarHits,radarAvgRespon
 
 };
 
-const _getBulkUpdateAvgStatusCode = (apiLogs,radarObj) =>{
+const _getBulkUpdateAvgStatusCode = (apiLogs, radarObj) => {
     const statusCodes = {};
 
     // Traverse through all statusCodesPerTimeFrame to calculate the cumulative count of each status code
@@ -145,7 +146,7 @@ const _getCreationObject = (apiLogInfo, apiObj) => {
 
     let creationObject = {
         apiId: apiObj._id,
-        project : apiObj.project, 
+        project: apiObj.project,
         hitsPerTimeFrame: hitsArray,
         statusCodesPerTimeFrame: statusCodesArray,
         apiMostRecentStatusCode: apiLogInfo.statusCode,
@@ -158,7 +159,7 @@ const _getCreationObject = (apiLogInfo, apiObj) => {
     return creationObject;
 }
 
-const _getBulkUpdationObject = (apiLogs,radar,hits) =>{
+const _getBulkUpdationObject = (apiLogs, radar, hits) => {
     let currentMinute = new Date();
     currentMinute.setSeconds(0, 0);
 
@@ -198,8 +199,8 @@ const _getBulkUpdationObject = (apiLogs,radar,hits) =>{
     });
 
 
-    let avgResponseTime = _getBulkUpdateAvgResponseTime(apiLogs,hits,radar.totalHitsTillNow,radar.apiAverageResponseTime);
-    let avgStatuscode = _getBulkUpdateAvgStatusCode(apiLogs,radar);
+    let avgResponseTime = _getBulkUpdateAvgResponseTime(apiLogs, hits, radar.totalHitsTillNow, radar.apiAverageResponseTime);
+    let avgStatuscode = _getBulkUpdateAvgStatusCode(apiLogs, radar);
 
     let updationObject = {
         apiId: radar.apiId,
@@ -282,22 +283,22 @@ exports._updateRadar = async (radar, apiLogInfo) => {
 }
 
 
-exports._bulkUpdateRadar = async (apiEndPoint,apiLogs,hits) =>{
-    let apiObj,radarObject;
-    try{
-        try{
+exports._bulkUpdateRadar = async (apiEndPoint, apiLogs, hits) => {
+    let apiObj, radarObject;
+    try {
+        try {
 
-            apiObj = await apiModel.findOne({apiEndPoint :apiEndPoint},{_id : 1});
-            radarObject = await Radar.findOne({apiId : apiObj._id});
-        }catch(err){
+            apiObj = await apiModel.findOne({ apiEndPoint: apiEndPoint }, { _id: 1 });
+            radarObject = await Radar.findOne({ apiId: apiObj._id });
+        } catch (err) {
             logger.error(`Error || Error in fetching the apiModel or RadarObject for apiEndPoint : ${apiEndPoint}`);
             logger.error(err);
             throw err;
         }
-        let updateObject = _getBulkUpdationObject(apiLogs,radarObject,hits);
-        await Radar.updateOne({_id : radarObject._id},updateObject);
+        let updateObject = _getBulkUpdationObject(apiLogs, radarObject, hits);
+        await Radar.updateOne({ _id: radarObject._id }, updateObject);
         return true;
-    }catch(err){
+    } catch (err) {
         logger.error(`Error || Error in updating the performance metrics for id : ${radarObject._id}`);
         logger.error(err);
         throw err;
@@ -316,10 +317,10 @@ exports._addRadarOnApi = async (apiLogInfo, apiObj) => {
     }
 }
 
-exports._deleteRadarFromApi = async(apiId) =>{
-    try{
-        await Radar.deleteOne({apiId : apiId});
-    }catch(err){
+exports._deleteRadarFromApi = async (apiId) => {
+    try {
+        await Radar.deleteOne({ apiId: apiId });
+    } catch (err) {
         logger.error(`Error || Error in deleting the Radar for API : ${apiId}`);
         logger.error(err);
         throw err;
@@ -389,3 +390,27 @@ exports._generateApiHitsReport = (radarObj, graphMins) => {
     return report;
 };
 
+exports._setMonitoringOnCache = async (monitoringStatus, apiId) => {
+    let apiObj;
+    try {
+        apiObj = await _getAPIUsingId(apiId);
+    } catch (err) {
+        logger.error(`Error || Error in fetching the apiModel for apiId : ${apiId}`);
+        logger.error(err);
+        throw err;
+    }
+    try {
+        let configBody = {
+            isMonitoring: monitoringStatus,
+            projectId: apiObj?.project?.toString(),
+            apiPath: apiObj?.apiEndPoint?.replace(/^[a-f\d]{24}\//, '')
+        }
+        let resp = await axios.post(`${process.env.GARUDA_CACHING}/api/v1/config`, configBody);
+        logger.info(`INFO || Config also set in caching for apiPath : ${apiObj?.apiEndPoint}`);
+        return resp.data;
+    } catch (err) {
+        logger.error(`Error || Error in setting the monitoring status in caching for id : ${apiId}`);
+        logger.error(err);
+        throw err;
+    }
+}
