@@ -5,7 +5,7 @@ const logger = require("logat");
 const { _doesProjectIdAndApiKeyMatches, _getProjectById } = require("../utils/project.utils");
 const { _doesThisApiAlreadyExists, _isApiDown, _getAPIUsingId, _createApiModelAndSaveInDb, _updateApiModelAndSaveInDb, _updateApiModelUsingId, _findApiUsingProjectKeyAndPath } = require("../utils/apiModel.utils");
 const CustomError = require("../utils/customError");
-const { _isRadarExists, _addRadarOnApi, _updateRadar, _generateApiHitsReport, _deleteRadarFromApi, _bulkUpdateRadar } = require("../utils/radar.utils");
+const { _isRadarExists, _addRadarOnApi, _updateRadar, _generateApiHitsReport, _deleteRadarFromApi, _bulkUpdateRadar, _setMonitoringOnCache } = require("../utils/radar.utils");
 const { sendAlert } = require("../services/alert.service");
 const { _reportIncident } = require("../utils/incident.utils");
 // const { checkApiInCache, saveApiInCache } = require("../services/redis.service");
@@ -90,6 +90,7 @@ exports.onboardApisAsPerHits = BigPromise(async (req, res, next) => {
         // Create a new entry in apiPerformanceModel for performance metrics
 
         await _addRadarOnApi(apiLogInfo, apiObj);
+        await _setMonitoringOnCache(false,apiObj._id.toString());
 
         return res.status(200).json({
             message: "API saved successfully for the first time",
@@ -102,6 +103,7 @@ exports.onboardApisAsPerHits = BigPromise(async (req, res, next) => {
         if (!isRadarPresentForApi) {
             logger.info(`INFO || Initiating radar for this api with id : ${apiObj._id}`);
             await _addRadarOnApi(apiLogInfo, apiObj);
+            await _setMonitoringOnCache(false,apiObj._id.toString());
         } else {
             await _updateRadar(isRadarPresentForApi, apiLogInfo);
         }
@@ -161,26 +163,21 @@ exports.getReportOfSingleApi = BigPromise(async (req, res, next) => {
 
 exports.enableOrDisableRadarOnApi = BigPromise(async (req, res, next) => {
     const { reqType, apiId } = req.body;
-    if (reqType === 'ADD') {
-
-        await _updateApiModelUsingId(apiId, { "isRadarEnabled": true });
-        res.status(200).json({
-            message: "Radar is Enabled for API",
-            success: true
-        });
-    } else if (reqType === 'REMOVE') {
-        logger.info(`INFO || Radar is being enabled for api : ${apiId}`);
-        await _deleteRadarFromApi(apiId)
-        await _updateApiModelUsingId(apiId, { "isRadarEnabled": false });
-
-        res.status(200).json({
-            message: "Radar disabled for this API",
-            success: true
-        })
-    } else {
-        let error = new CustomError("ReqType is expected!", 422);
-        throw error;
+    if(!reqType || !apiId){
+        logger.error(`Error || Missing mandatory fields while configuring the radar`);
+        return res.status(422).json({
+            message: "Mandatory Fields are missing",
+            success: false
+        }) 
     }
+
+    await _updateApiModelUsingId(apiId, { "isRadarEnabled": reqType === 'ADD' ? true : false });
+    await _setMonitoringOnCache(reqType === 'ADD' ? true : false,apiId);
+
+    res.status(200).json({
+        message: `Radar is ${reqType === 'ADD' ? 'Enabled' : 'Disabled'} for API`,
+        success: true
+    })
 })
 
 exports.bulkProcessFromCaching = BigPromise(async (req, res, next) => {
