@@ -1,27 +1,58 @@
-# Garuda API Radar
+# 🚀 Garuda API – Scalable API Health Monitoring System  
 
-Garuda API Radar is a comprehensive API monitoring and alerting system designed to help you keep track of your APIs' performance and availability. This project provides a robust backend built with Node.js, Express, and MongoDB, along with various utilities and services to ensure your APIs are always up and running.
+[![Website](https://img.shields.io/badge/Live%20Demo-apigaruda.com-blue)](https://apigaruda.com/)  
+[![GitHub Issues](https://img.shields.io/github/issues/AtharvaPanegai/garuda-api)](https://github.com/AtharvaPanegai/garuda-api/issues)  
+[![GitHub Stars](https://img.shields.io/github/stars/AtharvaPanegai/garuda-api?style=social)](https://github.com/AtharvaPanegai/garuda-api/stargazers)  
 
-## Table of Contents
+Garuda API Radar is a **comprehensive API monitoring and alerting system** designed to help you **track your APIs' performance and availability in real time**. This project provides a **robust backend** built with **Node.js, Express, and MongoDB**, along with various utilities and services to ensure **your APIs are always up and running**.  
 
-- [Features](#features)
-- [Installation](#installation)
-- [Configuration](#configuration)
-- [Usage](#usage)
-- [API Documentation](#api-documentation)
-- [Contributing](#contributing)
-- [License](#license)
+---
 
-## Features
+## 🔗 **Garuda Ecosystem**  
 
-- **API Monitoring**: Track the performance and availability of your APIs.
-- **Alerting System**: Receive alerts via email when an API goes down.
-- **API Key Management**: Secure your APIs with unique API keys.
-- **User Authentication**: Secure user authentication and authorization.
-- **Project Management**: Manage multiple projects and their APIs.
-- **Incident Reporting**: Detailed incident reports for API failures.
+Garuda is a **multi-service platform**, and this repo serves as the **core backend**. Below are the other services in the ecosystem:  
 
-## Installation
+| **Service** | **Description** | **Repo Link** |
+|------------|-----------------|--------------|
+| **Garuda API (Backend)** | Main backend handling API monitoring and data processing | [🔗 Garuda API](https://github.com/AtharvaPanegai/garuda-api) |
+| **Garuda UI (Frontend)** | Web dashboard for real-time API analytics | [🔗 Garuda UI](https://github.com/AtharvaPanegai/garuda-ui) |
+| **Garuda Caching Service** | Redis-based caching layer for optimized monitoring | [🔗 Garuda Caching](https://github.com/AtharvaPanegai/garuda-caching) |
+| **API Radar** | NPM package for auto-collecting API health metrics | [🔗 API Radar](https://github.com/AtharvaPanegai/api-radar) |
+
+---
+
+## 🚀 **Features**  
+
+✅ **Real-time API monitoring** – Track uptime, response time & availability  
+✅ **Incident detection & alerting** – Get alerts via email when APIs fail  
+✅ **Secure API key management** – Protect APIs with unique keys  
+✅ **User authentication & authorization** – Secure login & access control  
+✅ **Project & API tracking** – Manage multiple projects efficiently  
+✅ **Detailed analytics & reporting** – Get insights into API performance  
+
+---
+
+## 🛠️ **Tech Stack**  
+
+- **Backend:** Node.js, Express.js  
+- **Database:** MongoDB, Redis  
+- **Messaging & Streaming:** Kafka, RabbitMQ  
+- **Frontend:** React.js (UI repo linked above)  
+
+---
+
+## 📜 **Table of Contents**  
+
+- [Installation](#installation)  
+- [Configuration](#configuration)  
+- [Usage](#usage)  
+- [API Documentation](#api-documentation)  
+- [Contributing](#contributing)  
+- [License](#license)  
+
+---
+
+## ⚓ Installation
 
 1. Clone the repository:
     ```sh
@@ -50,11 +81,11 @@ Garuda API Radar is a comprehensive API monitoring and alerting system designed 
     npm start
     ```
 
-## Configuration
+## 💻 Configuration
 
 The application uses environment variables for configuration. Ensure you have a `.env` file with the necessary variables as shown in the installation section.
 
-## Usage
+## 😎 Usage
 
 ### Running the Application
 
@@ -68,7 +99,7 @@ To run the application in production mode:
 npm start
 ```
 
-## API Documentation
+## 📃 API Documentation
 
 ### User Authentication
 
@@ -242,7 +273,7 @@ npm start
     }
     ```
 
-## Contributing
+## 👩‍💻 Contributing
 
 We welcome contributions to Garuda API Radar! Please follow these steps to contribute:
 
@@ -252,11 +283,11 @@ We welcome contributions to Garuda API Radar! Please follow these steps to contr
 4. Push to the branch (`git push origin feature-branch`).
 5. Create a pull request.
 
-### Code of Conduct
+### 👮‍♂️ Code of Conduct
 
 Please adhere to the [Contributor Covenant Code of Conduct](https://www.contributor-covenant.org/version/2/0/code_of_conduct/) when contributing to this project.
 
-## License
+## © License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
