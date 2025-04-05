@@ -69,7 +69,7 @@ exports.onboardApisAsPerHits = BigPromise(async (req, res, next) => {
         // If the API is down, notify the team
         if (_isApiDown(apiLogInfo.statusCode)) {
             logger.info(`INFO || API : ${apiObj._id} is down, sending out emails to relevant persons in the project`);
-            sendAlert(apiObj);
+            sendAlert(apiObj,apiLogInfo);
             _reportIncident(apiObj, apiLogInfo);
 
         }
@@ -110,8 +110,8 @@ exports.onboardApisAsPerHits = BigPromise(async (req, res, next) => {
 
 
         if (_isApiDown(apiLogInfo.statusCode)) {
-            logger.info(`INFO || API : ${apiObj._id} is down sending out emails to realted person in project`);
-            sendAlert(apiObj);
+            logger.info(`INFO || API : ${apiObj._id} is down sending out emails to related person in project`);
+            sendAlert(apiObj,apiLogInfo);
             _reportIncident(apiObj, apiLogInfo);
         }
 

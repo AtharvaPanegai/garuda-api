@@ -7,12 +7,15 @@ const { _addIncidentSteps } = require("../utils/incident.utils");
 require('dotenv').config();
 const suppotConfirmationTemplate = require("../templates/supportRequestConfirmationEmailTemplate.js");
 const supportRequestTemplate = require("../templates/supportRequestEmailToInternal.js");
+const alertEmailTemplate = require("../templates/alert.email.template.js");
 
 
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  host: "smtp-relay.brevo.com",
+  port: 465,
+  secure: true,
   auth: {
-    user: process.env.EMAIL_FROM, 
+    user: process.env.EMAIL_USERNAME,
     pass: process.env.EMAIL_AUTH_TOKEN,
   },
 });
@@ -40,53 +43,6 @@ const _sendSMS = async (smsOptions) => {
   }
 };
 
-const _getEmailOptions = (emailId, apiObj) => {
-    return {
-      from: "Alerts" +process.env.EMAIL_FROM, // Your email
-      to: emailId, // Recipient email
-      subject: `⚠️ Alert for API: ${apiObj.apiEndPoint}`, // Subject of the email
-      html: `
-      <div style="font-family: Arial, sans-serif; line-height: 1.5; color: #333;">
-        <table style="width: 100%; max-width: 600px; margin: auto; border: 1px solid #ddd; border-radius: 8px;">
-          <thead>
-            <tr>
-              <th style="background-color: #FF6347; padding: 10px; text-align: center; color: #fff; font-size: 24px; border-radius: 8px 8px 0 0;">
-                ⚠️ API Alert Notification
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td style="padding: 20px; background-color: #f9f9f9; color: #555;">
-                <p style="font-size: 18px; font-weight: bold; color: #333;">An alert has been triggered for the API: <strong>${apiObj.apiEndPoint}</strong></p>
-                <p style="font-size: 16px;">This alert was triggered at <strong>${moment().format('lll')}</strong>.</p>
-                <p style="font-size: 16px; color: #FF6347;">Please review the API and take necessary actions.</p>
-              </td>
-            </tr>
-            <tr>
-              <td style="padding: 20px; background-color: #ffffff;">
-                <table style="width: 100%; text-align: center;">
-                  <tr>
-                    <td style="font-size: 16px; color: #fff; background-color: #333; padding: 10px; border-radius: 4px;">
-                      <a href="https://your-dashboard-link.com" style="color: #fff; text-decoration: none;">View API Dashboard</a>
-                    </td>
-                  </tr>
-                </table>
-              </td>
-            </tr>
-            <tr>
-              <td style="padding: 20px; background-color: #f1f1f1; text-align: center;">
-                <p style="font-size: 14px; color: #888;">This is an automated alert. Please do not reply.</p>
-                <p style="font-size: 14px; color: #888;">For support, visit our <a href="https://support-link.com" style="color: #FF6347; text-decoration: none;">Help Center</a>.</p>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      `,
-    };
-  };
-  
 
 const _getSMSOptions = (onCallPerson, apiObj) => {
   return {
@@ -97,7 +53,7 @@ const _getSMSOptions = (onCallPerson, apiObj) => {
 };
 
 // Main function to send alert
-const sendAlert = async (apiObj) => {
+const sendAlert = async (apiObj, apiLogInfo) => {
   let projectId = apiObj.project;
   let onCallPerson;
 
@@ -112,22 +68,31 @@ const sendAlert = async (apiObj) => {
   // Check if on-call person has an email configured
   if (onCallPerson?.onCallPersonEmail) {
     logger.info(`INFO || Sending Email Alert for API: ${apiObj._id} at ${moment().format('lll')}`);
-    let emailOptions = _getEmailOptions(onCallPerson.onCallPersonEmail, apiObj);
-    await _sendEmail(emailOptions); 
-    let emailSteps = {
-      incidentTime : `${moment().format("lll")}`,
-      step : `Email Sent to ${onCallPerson.onCallPersonEmail} at ${moment().format('lll')}`,
+
+    let alertEmailParsed = _parseAlertEmailTemplate(apiLogInfo);
+
+    const emailOptions = {
+      from: `Garuda Alerts <${process.env.EMAIL_FROM}>`,
+      to: onCallPerson.onCallPersonEmail,
+      subject: `ALERT: API ${apiObj.apiEndPoint} is Down`,
+      html: alertEmailParsed
     }
 
-    await _addIncidentSteps(emailSteps,apiObj._id);
+    await _sendEmail(emailOptions);
+    let emailSteps = {
+      incidentTime: `${moment().format("lll")}`,
+      step: `Email Sent to ${onCallPerson.onCallPersonEmail} at ${moment().format('lll')}`,
+    }
+
+    await _addIncidentSteps(emailSteps, apiObj._id);
   }
 
   // Check if on-call person has a phone number configured
-//   if (onCallPerson?.onCallPersonPhoneNumber) {
-//     logger.info(`INFO || Sending SMS Alert for API: ${apiObj._id} at ${moment().format("lll")}`);
-//     let smsOptions = _getSMSOptions(onCallPerson, apiObj);
-//     await _sendSMS(smsOptions); // Send SMS
-//   }
+  //   if (onCallPerson?.onCallPersonPhoneNumber) {
+  //     logger.info(`INFO || Sending SMS Alert for API: ${apiObj._id} at ${moment().format("lll")}`);
+  //     let smsOptions = _getSMSOptions(onCallPerson, apiObj);
+  //     await _sendSMS(smsOptions); // Send SMS
+  //   }
 
   // If no contact methods are configured, log an error
   if (!onCallPerson?.onCallPersonEmail && !onCallPerson?.onCallPersonPhoneNumber) {
@@ -137,40 +102,51 @@ const sendAlert = async (apiObj) => {
   return;
 };
 
-const _parseEmailTemplateForSupportRequests = (template,values) =>{
+const _parseEmailTemplateForSupportRequests = (template, values) => {
   const { name, email, message } = values;
 
-    return template
-        .replace(/{{name}}/g, name)
-        .replace(/{{email}}/g, email)
-        .replace(/{{message}}/g, message);
+  return template
+    .replace(/{{name}}/g, name)
+    .replace(/{{email}}/g, email)
+    .replace(/{{message}}/g, message);
 
 }
 
-const sendSupportRequestsToEmail = async (name, email , message) => {
-  try{
+const _parseAlertEmailTemplate = (values) => {
+  const { path, statusCode, responseTime } = values;
+  const timeStamp = moment().format("lll");
 
-    const parsedEmailInternal = _parseEmailTemplateForSupportRequests(supportRequestTemplate,{name,email,message});
-    const parsedEmailForCustomer = _parseEmailTemplateForSupportRequests(suppotConfirmationTemplate,{name,email,message});
-    
-  let supportEmailOptionsForInternal = {
-    from: "Support Notification" + process.env.EMAIL_FROM, 
+  return alertEmailTemplate
+    .replace(/{{apiPath}}/g, path)
+    .replace(/{{statusCode}}/g, statusCode)
+    .replace(/{{timeStamp}}/g, timeStamp)
+    .replace(/{{responseTime}}/g, responseTime);
+}
+
+const sendSupportRequestsToEmail = async (name, email, message) => {
+  try {
+
+    const parsedEmailInternal = _parseEmailTemplateForSupportRequests(supportRequestTemplate, { name, email, message });
+    const parsedEmailForCustomer = _parseEmailTemplateForSupportRequests(suppotConfirmationTemplate, { name, email, message });
+
+    let supportEmailOptionsForInternal = {
+      from: "Support Notification" + process.env.EMAIL_FROM,
       to: "shreejisventures@gmail.com",
       subject: `New Support Request Raised for : ${name}`,
-      html : parsedEmailInternal
+      html: parsedEmailInternal
     }
-    
+
     await _sendEmail(supportEmailOptionsForInternal);
-    
+
     let supportEmailConfirmationForCustomer = {
-      from: "Support Notification" + process.env.EMAIL_FROM, 
+      from: "Support Notification" + process.env.EMAIL_FROM,
       to: email,
       subject: `Garuda Support: Request Received and Under Review`,
-      html : parsedEmailForCustomer
+      html: parsedEmailForCustomer
     }
-    
+
     await _sendEmail(supportEmailConfirmationForCustomer);
-  }catch(err){
+  } catch (err) {
     logger.error(`Error || Error in sending support email confirmation to customer : ${email}`);
     logger.error(err);
     throw err;
