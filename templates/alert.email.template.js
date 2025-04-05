@@ -16,7 +16,6 @@ const emailTemplate = `<!DOCTYPE html>
           <tr>
             <td align="center" style="background-color: #2D0A42; padding: 20px;">
               <!-- Logo placeholder - replace with your actual logo URL -->
-              <img src="https://apigaruda.com/logo.png" alt="Garuda Logo" style="height: 40px; margin-bottom: 10px;">
               <h1 style="color: #ffffff; margin: 10px 0; font-size: 24px;">API Alert Notification</h1>
             </td>
           </tr>
