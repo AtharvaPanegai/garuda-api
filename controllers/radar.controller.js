@@ -183,10 +183,20 @@ exports.enableOrDisableRadarOnApi = BigPromise(async (req, res, next) => {
 exports.bulkProcessFromCaching = BigPromise(async (req, res, next) => {
     logger.info(`INFO || Bulk Processing from Caching is being initiated at : ${new Date().toISOString()}`);
 
-    const { bulkData } = req.body;
+    const {bulkData}  = req.body;
 
     // traverse through the bulkData and process it further (bulkData is an object)
+    // Add validation and logging
+    if (!bulkData || Object.keys(bulkData).length === 0) {
+        logger.error('ERROR || Bulk data is empty or undefined');
+        return res.status(400).json({
+            statusCode: 400,
+            message: "Invalid or empty bulk data received"
+        });
+    }
 
+    // Log the received data structure
+    logger.info(`INFO || Received bulk data with ${Object.keys(bulkData).length} API paths`);
     try {
         await Promise.all(
             Object.entries(bulkData).map(async ([apiPath, apiData]) => {
