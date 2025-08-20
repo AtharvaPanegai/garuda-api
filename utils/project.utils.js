@@ -105,19 +105,36 @@ const _getMostCapturedStatusCode = (statusCodesArray) => {
 const _calculateHitsForLast7Days = (radarObjects) => {
     const hitsByDay = {};
 
-    // Traverse through each radar object
+    // Handle empty or null input
+    if (!radarObjects || radarObjects.length === 0) {
+        const last7Days = [];
+        for (let i = 6; i >= 0; i--) {
+            const day = moment().subtract(i, 'days').format('YYYY-MM-DD');
+            last7Days.push({
+                date: day,
+                hits: 0
+            });
+        }
+        return last7Days;
+    }
+
+    // Traverse through each radar object with null checks
     radarObjects.forEach(radar => {
-        radar.hitsPerTimeFrame.forEach(frame => {
-            const day = moment(frame.timeframe).startOf('day').format('YYYY-MM-DD'); // Get day part
-            if (!hitsByDay[day]) {
-                hitsByDay[day] = 0;
-            }
-            hitsByDay[day] += frame.hits; // Sum the hits for each day
-        });
+        if (radar && radar.hitsPerTimeFrame && Array.isArray(radar.hitsPerTimeFrame)) {
+            radar.hitsPerTimeFrame.forEach(frame => {
+                if (frame && frame.timeframe && frame.hits !== undefined) {
+                    const day = moment(frame.timeframe).startOf('day').format('YYYY-MM-DD'); // Get day part
+                    if (!hitsByDay[day]) {
+                        hitsByDay[day] = 0;
+                    }
+                    hitsByDay[day] += frame.hits || 0; // Sum the hits for each day
+                }
+            });
+        }
     });
 
     const last7Days = [];
-    for (let i = 0; i < 7; i++) {
+    for (let i = 6; i >= 0; i--) {
         const day = moment().subtract(i, 'days').format('YYYY-MM-DD');
         last7Days.push({
             date: day,
@@ -125,7 +142,7 @@ const _calculateHitsForLast7Days = (radarObjects) => {
         });
     }
 
-    return last7Days;
+    return last7Days.reverse();
 };
 
 
@@ -150,32 +167,55 @@ const _generateStatusSummary = (radarsForProject)=> {
         300: "Timeout",
     };
 
+    // Handle empty or null input
+    if (!radarsForProject || radarsForProject.length === 0) {
+        return [{
+            name: "No Data Available",
+            value: 1
+        }];
+    }
+
     // Object to accumulate counts for each status code
     const statusCountMap = {};
 
-    // Iterate through the input data
+    // Iterate through the input data with proper null checks
     radarsForProject.forEach(api => {
-        api.statusCodesPerTimeFrame.forEach(statusEntry => {
-            statusEntry.statusCodes.forEach(codeEntry => {
-                const statusCode = codeEntry.statusCode;
-                const count = codeEntry.count;
+        if (api && api.statusCodesPerTimeFrame && Array.isArray(api.statusCodesPerTimeFrame)) {
+            api.statusCodesPerTimeFrame.forEach(statusEntry => {
+                if (statusEntry && statusEntry.statusCodes && Array.isArray(statusEntry.statusCodes)) {
+                    statusEntry.statusCodes.forEach(codeEntry => {
+                        if (codeEntry && codeEntry.statusCode !== undefined && codeEntry.statusCode !== null) {
+                            const statusCode = String(codeEntry.statusCode);
+                            const count = codeEntry.count || 0;
 
-                // Initialize or update the count for the status code
-                if (!statusCountMap[statusCode]) {
-                    statusCountMap[statusCode] = 0;
+                            // Initialize or update the count for the status code
+                            if (!statusCountMap[statusCode]) {
+                                statusCountMap[statusCode] = 0;
+                            }
+                            statusCountMap[statusCode] += count;
+                        }
+                    });
                 }
-                statusCountMap[statusCode] += count;
             });
-        });
+        }
     });
+
+    // If no status codes were found, return default data
+    if (Object.keys(statusCountMap).length === 0) {
+        return [{
+            name: "No Data Available",
+            value: 1
+        }];
+    }
 
     // Transform the accumulated data into the desired format
     return Object.keys(statusCountMap).map(statusCode => {
+        const statusName = statusMapping[parseInt(statusCode, 10)];
         return {
-            name: statusMapping[parseInt(statusCode, 10)] || `Status ${statusCode}`,
-            value: statusCountMap[statusCode],
+            name: statusName || `Status ${statusCode}`,
+            value: statusCountMap[statusCode] || 0,
         };
-    });
+    }).filter(item => item.value > 0); // Filter out items with 0 value
 }
 
 
@@ -183,14 +223,38 @@ exports._getOverallStatusCodesAndGraphDataForProjectReport = async (projectId) =
     try{            
         let statusCodesArray = [];
         let radarsForProject = await radarModel.find({project:projectId});
+        
+        // Handle empty radar data
+        if (!radarsForProject || radarsForProject.length === 0) {
+            return {
+                mostCapturedStatusCode: null,
+                apiHitsReport: _calculateHitsForLast7Days([]),
+                statusSummaryArray: [{
+                    name: "No Data Available",
+                    value: 1
+                }]
+            };
+        }
+
         for(let radar of radarsForProject){
-            statusCodesArray.push(radar.apiMostCapturedStatusCode);
+            if (radar && radar.apiMostCapturedStatusCode !== undefined && radar.apiMostCapturedStatusCode !== null) {
+                statusCodesArray.push(radar.apiMostCapturedStatusCode);
+            }
         }
 
         let apiHitsReport = _calculateHitsForLast7Days(radarsForProject);
         let mostCapturedStatusCode = _getMostCapturedStatusCode(statusCodesArray);
         let statusSummaryArray = _generateStatusSummary(radarsForProject);
-        return {mostCapturedStatusCode,apiHitsReport,statusSummaryArray};
+        
+        // Ensure we always return valid data
+        return {
+            mostCapturedStatusCode: mostCapturedStatusCode || null,
+            apiHitsReport: apiHitsReport || [],
+            statusSummaryArray: statusSummaryArray && statusSummaryArray.length > 0 ? statusSummaryArray : [{
+                name: "No Data Available",
+                value: 1
+            }]
+        };
 
     }catch(err){    
         logger.error(`Error || Error in getting the most common status across all apis hosted for project : ${projectId}`);

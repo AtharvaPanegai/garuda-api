@@ -125,16 +125,29 @@ exports.getCummulitiveProjectReport = BigPromise(async (req, res, next) => {
         let { mostCapturedStatusCode, apiHitsReport,statusSummaryArray } = await _getOverallStatusCodesAndGraphDataForProjectReport(projectId);
         let projectAge = moment(project.createdAt).fromNow();
 
+        // Ensure statusSummaryArray is always an array
+        if (!statusSummaryArray || !Array.isArray(statusSummaryArray)) {
+            statusSummaryArray = [{
+                name: "No Data Available",
+                value: 1
+            }];
+        }
+
+        // Ensure apiHitsReport is always an array
+        if (!apiHitsReport || !Array.isArray(apiHitsReport)) {
+            apiHitsReport = [];
+        }
+
         projectReport = {
             project,
-            totalApisCount: totalApisForProject.length,
-            totalIncidentsReported: totalIncidents,
-            overAllStatusCode: mostCapturedStatusCode,
+            totalApisCount: totalApisForProject ? totalApisForProject.length : 0,
+            totalIncidentsReported: totalIncidents || [],
+            overAllStatusCode: mostCapturedStatusCode || "N/A",
             projectAge: projectAge,
             onCallPerson: project.onCallPerson?.onCallPersonName || "No onCall Person",
             apiHitsReport: apiHitsReport,
             statusSummaryArray,
-            totalApisForProject
+            totalApisForProject: totalApisForProject || []
         }
 
     } catch (err) {
