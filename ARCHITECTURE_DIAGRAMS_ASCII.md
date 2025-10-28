@@ -1231,17 +1231,4 @@ mongodb: 27017
 
 ---
 
-## How to View These Diagrams
 
-These ASCII diagrams work in any text editor or terminal. For the Mermaid diagrams in the original file:
-
-1. **GitHub/GitLab**: Renders automatically
-2. **VS Code**: Install "Markdown Preview Mermaid Support" extension
-3. **Online**: Copy to https://mermaid.live/
-4. **CLI**: Use `mmdc` tool from mermaid-cli package
-
----
-
-**Generated for: Garuda API Monitoring System**
-**Version: 1.0**
-**Date: 2025**
