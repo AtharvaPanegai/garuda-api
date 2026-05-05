@@ -201,7 +201,7 @@ npm start
 
 ### API Monitoring
 
-#### Onboard APIs as per Hits
+#### Onboard APIs as per Hit
 - **Endpoint**: `/api/v1/radar/monitorapi`
 - **Method**: `POST`
 - **Description**: Process API hits and onboard APIs.
